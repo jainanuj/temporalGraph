@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <vector>
+#include <tuple>
 #include <cstring>
 #include <algorithm>
 #include <set>
@@ -14,7 +15,7 @@
 
 using namespace std;
 
-const int infinity = 1e12;
+const int infinity = 2e9;
 
 struct Interval
 {
@@ -81,7 +82,6 @@ class Graph
 public:
     Graph() {}
     Graph(const char* filePath); // input file
-    void wuGraph(const char* filePath,int noL = 0);     //input file in wu Format.
     void initial_query(const char* filePath); // query file
     void initial_query();
     void initial_ds_ea();
@@ -93,17 +93,21 @@ public:
     void earliest_arrival(int source);
     void earliest_arrival_pair(int source);
     void earliest_arrival_fibo(int source);
+    void earliest_arrival_fibo_external(int source);
     void shortest_path(int source);
     
+    void build_shortestJourneys(int source, vector<std::pair<int, int>>& shortestJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys);
     void print_shortest_paths(int source);
-    
+    void print_shortest_results_test(int source);
+
     
     int earliestUseEdgeAfterT(int u, Nbrs& v, int t, int &intvlID);
     
 	void print_avg_time();
     
-    void collapseIntervalsWriteOuput(const char* filePath);
-    vector<tuple<int, int, int>> adjustSlowIntervals(std::vector<tuple<int, int, int>>& intervalVector);
+    static void wuGraph(const char* filePath,int noL = 0);     //input file in wu Format.
+    static void collapseIntervalsWriteOuput(const char* filePath, const char* opFile);
+    static vector<tuple<int, int, int>> adjustSlowIntervals(std::vector<tuple<int, int, int>>& intervalVector);
     
     // for testing the correctness
     void run_earliest_arrival(const char* filePath); // output the result
@@ -113,15 +117,21 @@ public:
     void print_avg_time(const char* filePath1, const char* filePath2);
     
     void printResults(int source);
+    void printEarliestResultsTest(int source);
+
 
 public:
+    string earliestResults;
+    string shortestResults;
+    string minHeapMonitor;
     vector<Node> vertices;
     
     vector< int > sources;
     int V, static_E, dynamic_E;
     int t_start, t_end;
     double time_sum;
-	vector <int> arr_time, f_time, father;
+    vector <int> arr_time, f_time;
+    vector <tuple<int, int, int>> father;
     vector<Journey> shortestJourneys;
 };
 
@@ -160,6 +170,21 @@ public:
             return (std::get<2>(tup1) < std::get<2>(tup2));
         else
             return (std::get<3>(tup1) < std::get<3>(tup2));
+    }
+};
+
+class compareTupleWu {      //sort by t.
+public:
+    bool operator () (std::tuple<int, int, int, int> tup1, std::tuple<int, int, int, int> tup2)
+    {
+        if (get<2>(tup1) != get<2>(tup2))           //third element in the tuple is 't' (time instant)
+            return (get<2>(tup1) < get<2>(tup2));
+        else if (get<0>(tup1) != get<0>(tup2))
+            return (get<0>(tup1) < get<0>(tup2));
+        else if (get<1>(tup1) != get<1>(tup2))
+            return (get<1>(tup1) < get<1>(tup2));
+        else
+            return (get<3>(tup1) < get<3>(tup2));
     }
 };
 
