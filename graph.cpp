@@ -19,7 +19,7 @@
 
 #define sourceId 1
 
-Graph::Graph(const char* filePath)      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
+Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
 {
     FILE* file;
     int x;
@@ -59,13 +59,19 @@ Graph::Graph(const char* filePath)      //Reads the edges of the graph in interv
     }
     for(int i = 0; i < dynamic_E; i ++)
     {
-        x=fscanf(file, "%d %d %d", &u, &nbr.nbrId, &nbr.numIntvls); //(u, v, lamda, numIntvls)
+        x=fscanf(file, "%d %d %d", &u, &nbr.nbrId, &nbr.numIntvls); //(u, v, numIntvls)
         vertices[u].numNbrs++;
         nbr.edgeSchedules.resize(nbr.numIntvls);
         int intvls = 0; int intvlRead;
         for (intvlRead = 0; intvlRead <  nbr.numIntvls; intvlRead++)
         {
-            x=fscanf(file, "%d %d %d", &intvlStart, &intvlEnd, &lambda);
+            if (contactSeq == 0)
+                x=fscanf(file, "%d %d %d", &intvlStart, &intvlEnd, &lambda);
+            else
+            {
+                x=fscanf(file, "%d %d", &intvlStart, &lambda);
+                intvlEnd = intvlStart;
+            }
             //adjustedEnd = intvlEnd - nbr.nbr_lambda;      This is for input model where end is time till edge is active.
             adjustedEnd = intvlEnd;     //This is for input model where end is last instant at which end can be used.
             //nbr.edgeSchedules[intvls].adjustedEnd = nbr.edgeSchedules[intvls].intvlEnd - nbr.nbr_lambda;

@@ -48,6 +48,7 @@ int main(int argc, const char * argv[]) {
 //    return 0;
     
     const char* option = argv[1];
+    int contactSeq = 0;
     
     if(!strcmp(option,"wu"))
     {
@@ -58,7 +59,9 @@ int main(int argc, const char * argv[]) {
     Timer t;
     t.start();
 
-    Graph g(argv[2]);
+    if (argc > 3)
+        contactSeq = 1;
+    Graph g(argv[2], contactSeq);
     g.initial_query();
 
     t.stop();

@@ -81,7 +81,7 @@ class Graph
 {
 public:
     Graph() {}
-    Graph(const char* filePath); // input file
+    Graph(const char* filePath, int contactSeq); // input file
     void initial_query(const char* filePath); // query file
     void initial_query();
     void initial_ds_ea();
