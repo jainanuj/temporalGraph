@@ -530,7 +530,7 @@ void Graph::earliest_arrival_pair(int source)
         
     arr_time[source]=t_start;
     father[source] = make_tuple(source,-1,0);
-//    minHeap.push_back(std::make_pair(arr_time[source], source));
+    minHeap.push_back(std::make_pair(arr_time[source], source));
     int i = 0, numRepeatedNodes = 0, numInserts = 0;
     
     t.start();
@@ -567,8 +567,8 @@ void Graph::earliest_arrival_pair(int source)
 #ifdef MEASUREHEAP_DET
                         ticks = clock();
 #endif
-//                        minHeap.push_back(std::make_pair(arr_time[u->neighbors[i].nbrId], u->neighbors[i].nbrId));
-//                        std::push_heap(minHeap.begin(), minHeap.end(), heapCompFn);
+                        minHeap.push_back(std::make_pair(arr_time[u->neighbors[i].nbrId], u->neighbors[i].nbrId));
+                        std::push_heap(minHeap.begin(), minHeap.end(), heapCompFn);
 #ifdef MEASUREHEAP_DET
                         insertTimer += (clock() - ticks);
 #endif
