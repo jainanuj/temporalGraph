@@ -15,9 +15,10 @@
 #include "regHeap.hpp"
 
 //#define MEASUREHEAP_DET 1
+//#define __TEST__
 
 
-#define sourceId 1
+#define sourceId 351401
 
 Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
 {
@@ -384,13 +385,13 @@ void Graph::initial_query()
     t_end = infinity;
     
     int s;
-//    sources.push_back(sourceId);
-    for(int i = 0 ;i < 10 ;i ++)
+    sources.push_back(sourceId);
+/*    for(int i = 0 ;i < 10 ;i ++)
     {
         s=rand()%V;
         sources.push_back(s);
     }
-
+*/
 }
 
 
@@ -454,8 +455,8 @@ void Graph::run_earliest_arrival()
     {
         initial_ds_ea();
 //        earliest_arrival(sources[i]);
-//        earliest_arrival_pair(sources[i]);
-        earliest_arrival_fibo(sources[i]);
+        earliest_arrival_pair(sources[i]);
+//        earliest_arrival_fibo(sources[i]);
 //        earliest_arrival_fibo_external(sources[i]);
     }
     
@@ -836,7 +837,7 @@ void Graph::printResults(int source)
 
 void Graph::printEarliestResultsTest(int source)
 {
-    int x = 0;
+    int rv = 0;
     ofstream earliestOut(earliestResults);
     earliestOut << V << "\n";
     for (int i = 0; i < arr_time.size(); i++)
@@ -844,18 +845,21 @@ void Graph::printEarliestResultsTest(int source)
         if (arr_time[i] >= infinity)
             continue;
         earliestOut << i << " " << arr_time[i] << "  "  << "\n";
-        x++;
-/*        x = i;
+        rv++;
+#ifdef __TEST__
+        int x = 0;
+        x = i;
         while (get<0>(father[x]) != x)
         {
             earliestOut << x <<"(" << get<1>(father[x]) << " " << get<2>(father[x]) << ") ";
             x = get<0>(father[x]);
         }
-        earliestOut << x << "\n";*/
+        earliestOut << x << "\n";
+#endif
     }
     cout << "Source: " << source << "\n";
-    cout << "Num reachable vertices: " << x << "\n";
-    cout << "Ratio of reachable vertices " << (float)x/V << "\n";
+    cout << "Num reachable vertices: " << rv << "\n";
+    cout << "Ratio of reachable vertices " << (float)rv/V << "\n";
 }
 
 
