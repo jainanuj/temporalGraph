@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
-#include "cppfibonacci/fibonacci.hpp"
+//#include "cppfibonacci/fibonacci.hpp"
 #include <fstream>
 #include "fibheap.h"
 #include "regHeap.hpp"
@@ -720,7 +720,7 @@ void Graph::earliest_arrival_fibo(int source)
     printEarliestResultsTest(source);
 }
 
-void Graph::earliest_arrival_fibo_external(int source)
+/*void Graph::earliest_arrival_fibo_external(int source)
 {
     ofstream minHeapMonitorOutput(minHeapMonitor);
     unsigned long maxHeapSize = 0, avgHeapSize = 0, count = 0, currentAvg = 0;
@@ -811,7 +811,7 @@ void Graph::earliest_arrival_fibo_external(int source)
 //    printResults(source);
     time_sum += t.GetRuntime();
     printEarliestResultsTest(source);
-}
+}*/
 
 
 void Graph::printResults(int source)
