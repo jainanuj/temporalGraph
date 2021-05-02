@@ -1,3 +1,11 @@
+For generating graphs with wu model and Xuan model from Koblenz networks:
+./XuantemporalGraph wu <filename>
+For the koblenz networks where first 2 lines have to be dropped.
+./XuantemporalGraph wu <filename> 2
+
+If only first line has to be dropped than the first command is good enough.
+
+
 This runs algorithms for finding different types of paths in the temporal graph.
 Graph is expressed in interval temporal format.
 The different algorithms supported right now:
@@ -18,5 +26,9 @@ cs format:
 command to run with intvl format:
 ./XuantemporalGraph earliest|shortest <filename>
 
-command to run with intvl format:
+command to run with cs format:
 ./XuantemporalGraph earliest|shortest <filename> cs
+
+To run with Test mode, for testign with just 1 source and comparing the outputs.
+Uncomment #define __TEST__ on the top of both Wu and XuanTemporalGrpahs.
+Compile and then just run with the same commands as above

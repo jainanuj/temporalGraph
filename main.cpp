@@ -52,7 +52,10 @@ int main(int argc, const char * argv[]) {
     
     if(!strcmp(option,"wu"))
     {
-        Graph::wuGraph(argv[2], 2);     //Drop the element after u, v.
+        int numDrop = 1;
+        if (argc > 3)
+            sscanf(argv[3],"%d",&numDrop);
+        Graph::wuGraph(argv[2], 2, numDrop);     //Drop the element after u, v.
         return 0;
     }
 

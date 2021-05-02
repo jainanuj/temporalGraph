@@ -16,9 +16,10 @@
 
 //#define MEASUREHEAP_DET 1
 //#define __TEST__
+#define RUN_COUNT 100
 
 
-#define sourceId 351401
+#define sourceId 35401
 
 Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
 {
@@ -94,7 +95,7 @@ Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of
     fclose(file);
 }
 
-void Graph::wuGraph(const char* filePath, int noL)
+void Graph::wuGraph(const char* filePath, int noL, int numDrop)
 {
 //    FILE* file = fopen(filePath,"r");
     
@@ -124,7 +125,8 @@ void Graph::wuGraph(const char* filePath, int noL)
     const char* intermediateFile = "/Users/anujjain/research/temporalGraph/WuTemporalGraph/tempath/intermediate.txt";
     
     lambda = 1;
-    getline(inputFile, inputLine);          //Drop the first line as it is usually comment.
+    for (int dx=0; dx<numDrop; dx++)    //Drop the first line numDrop lines as they are comments.
+        getline(inputFile, inputLine);
     while (getline(inputFile, inputLine))
 //    for(int i = 0; i < wuEdges; i ++)
     {
@@ -144,10 +146,10 @@ void Graph::wuGraph(const char* filePath, int noL)
         }
         inputRows.push_back(std::make_tuple(u, v, t, lambda));
         wuEdges++;
-        if (u > vertices)
-            vertices = u;
-        if (v > vertices)
-            vertices = v;
+        if (u > vertices-1)
+            vertices = u+1;
+        if (v > vertices-1)
+            vertices = v+1;
     }
 //    fclose(file);
     std::sort<vector<tuple<int, int, int, int>>::iterator, compareTupleWu>(inputRows.begin(), inputRows.end(), tupleCompWu);
@@ -385,13 +387,15 @@ void Graph::initial_query()
     t_end = infinity;
     
     int s;
+#ifdef __TEST__
     sources.push_back(sourceId);
-/*    for(int i = 0 ;i < 10 ;i ++)
+#else
+    for(int i = 0 ;i < RUN_COUNT ;i ++)
     {
         s=rand()%V;
         sources.push_back(s);
     }
-*/
+#endif
 }
 
 
@@ -599,7 +603,9 @@ void Graph::earliest_arrival_pair(int source)
 #endif*/
 //    printResults(source);
     time_sum += t.GetRuntime();
+#ifdef __TEST__
     printEarliestResultsTest(source);
+#endif
 }
 
     
@@ -846,7 +852,7 @@ void Graph::printEarliestResultsTest(int source)
             continue;
         earliestOut << i << " " << arr_time[i] << "  "  << "\n";
         rv++;
-#ifdef __TEST__
+/*#ifdef __TEST__
         int x = 0;
         x = i;
         while (get<0>(father[x]) != x)
@@ -855,7 +861,7 @@ void Graph::printEarliestResultsTest(int source)
             x = get<0>(father[x]);
         }
         earliestOut << x << "\n";
-#endif
+#endif*/
     }
     cout << "Source: " << source << "\n";
     cout << "Num reachable vertices: " << rv << "\n";
@@ -911,7 +917,7 @@ void Graph::shortest_path(int source)
 {
     Timer t;
 
-    vector<vector<incrementalJourney>> allHopJourneys; //At each hop there is a vector of foremost inremental journeys, discovered in that hop.
+    vector<vector<incrementalJourney>> allHopJourneys; //At each hop there is a vector of foremost incremental journeys, discovered in that hop.
     vector<std::pair<int, int>> shortestJourneyPointer;     // <hop count where journey ended, index in allHopJourneys on that hop>
     vector<std::tuple<int, int, int>> earliestKnownTimeArrival;              // <earliestArrivalTime, hop in which this time achieved, index in allHopJourneys[thishop] vector.>
 
@@ -975,7 +981,9 @@ void Graph::shortest_path(int source)
     time_sum += t.GetRuntime();
 
     build_shortestJourneys(source, shortestJourneyPointer, allHopJourneys);
+#ifdef __TEST__
     print_shortest_results_test(source);
+#endif
 
 //    print_shortest_paths(source);
 }
@@ -1039,7 +1047,7 @@ void Graph::print_shortest_paths(int source)
 void Graph::print_shortest_results_test(int source)
 {
     ofstream shortestOut(shortestResults);
-    int maxHopCount = 0; int vertWHops = 0; int sumHops = 0; int avgHops;
+    int maxHopCount = 0; int vertWHops = 1; int sumHops = 0; int avgHops;
     shortestOut << V << "\n";
     for (int i = 0; i < V; i++)
     {
@@ -1051,7 +1059,8 @@ void Graph::print_shortest_results_test(int source)
         vertWHops++;
         if (shortestJourneys[i].rPath.size() > maxHopCount)
             maxHopCount = (int)shortestJourneys[i].rPath.size();
-/*        for (int hopCount = (int)(shortestJourneys[i].rPath.size()) - 1; hopCount >= 0; hopCount--)
+/*#ifdef __TEST__
+        for (int hopCount = (int)(shortestJourneys[i].rPath.size()) - 1; hopCount >= 0; hopCount--)
         {
             std::tuple<int, int, int> *pCurrentPrevNodesEdge = &(shortestJourneys[i].rPath[hopCount]);
             std::tuple<int, int, int> *pArriveDepartIntvlUsed = &(shortestJourneys[i].sigmaSchedule[hopCount]);
@@ -1064,7 +1073,8 @@ void Graph::print_shortest_results_test(int source)
             shortestOut << " (" << (prevNode) << "-->" << toNode << ")"
                 << ", (d: " << departTime << ", a:" << arrivalTime << ") ";
         }
-        shortestOut << "\n";*/
+        shortestOut << "\n";
+#endif*/
     }
     avgHops = sumHops/vertWHops;
     cout << "Max Hops = " << maxHopCount << "\n";
@@ -1103,6 +1113,7 @@ void Graph::print_result_ld(const int source, const vector<int>& t_time, FILE * 
 
 void Graph::print_avg_time()
 {
+    cout <<"Num of Sources tried on: " << sources.size() << endl;
     cout<<"Average time: " << time_sum/sources.size() <<endl;
 }
 

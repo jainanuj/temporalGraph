@@ -105,7 +105,7 @@ public:
     
 	void print_avg_time();
     
-    static void wuGraph(const char* filePath,int noL = 0);     //input file in wu Format.
+    static void wuGraph(const char* filePath,int noL = 0, int numDrop=1);     //input file in wu Format.
     static void collapseIntervalsWriteOuput(const char* filePath, const char* opFile);
     static vector<tuple<int, int, int>> adjustSlowIntervals(std::vector<tuple<int, int, int>>& intervalVector);
     
