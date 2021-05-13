@@ -994,13 +994,14 @@ void Graph::shortest_path(int source)
 void Graph::edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<int>& t_min, vector<int>& t_LBD)
 {
     vector<int> t_arrival; t_arrival.resize(V);
-    e_min.assign(V, std::make_tuple(-1,-1,-1));
-    t_min.assign(V, infinity);
-    int departTime = 0, intvlID = -1, newArrivTime = -1, nbr=-1;
-    for (int i = 0; i < V; i++)
+    for (int i=0; i < V; i++)
     {
+        get<0>(e_min[i]) = -1; get<1>(e_min[i]) = -1; get<2>(e_min[i]) = -1;
+        t_min[i] = infinity;
         t_arrival[i] = t_LBD[i];
     }
+
+    int departTime = 0, intvlID = -1, newArrivTime = -1, nbr=-1;
     for (int i=0;i<V;i++)
     {
         for (int j=0; j<vertices[i].numNbrs;j++)
@@ -1047,11 +1048,11 @@ void Graph::shortest_path_xuan(int source)
     int hopCount = 0;
     t_LBD[source] = 0;
     allHopJourneys[hopCount].push_back(journeyIncrement);
-    currentJourney[source] = std::make_pair(hopCount, allHopJourneys[hopCount].size()-1);
+    get<0>(currentJourney[source]) = hopCount; get<1>(currentJourney[source]) = (int)allHopJourneys[hopCount].size()-1;
     shortestJourneyPointer[source] = currentJourney[source];
 
     int  numNodesSeen = 1;      //Total number of nodes so far that don't have t_LBD as infinity.
-    while ( (hopCount < (V-1)) && (numNodesSeen < V))
+    while ( (hopCount < (V-2)) && (numNodesSeen < V-1))
     {
         hopCount++;
         edgeAndScheduleSel(e_min,t_min, t_LBD);
@@ -1066,9 +1067,12 @@ void Graph::shortest_path_xuan(int source)
                 int index_prevNode = get<1>(currentJourney[prevNode]);
                 incrementalJourney newIncrement(i, arrTime, prevNode, nbrIndex, intvlId, t_min[i], index_prevNode);
                 allHopJourneys[hopCount].push_back(newIncrement);
-                nextJourney[i] = std::make_pair(hopCount, allHopJourneys[hopCount].size()-1);
+                get<0>(nextJourney[i]) = hopCount; get<1>(nextJourney[i]) = (int)allHopJourneys[hopCount].size()-1;
                 if (t_LBD[i] >= infinity)
+                {
                     shortestJourneyPointer[i] = nextJourney[i];
+                    numNodesSeen++;
+                }
                 t_LBD[i] = arrTime;
             }
             else
