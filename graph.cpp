@@ -15,11 +15,11 @@
 #include "regHeap.hpp"
 
 //#define MEASUREHEAP_DET 1
-//#define __TEST__
+#define __TEST__
 #define RUN_COUNT 100
 
 
-#define sourceId 35401
+#define sourceId 1
 
 Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
 {
@@ -907,7 +907,9 @@ void Graph::run_shortest()
         //initial_ds_ea();
         //earliest_arrival(sources[i]);
         //initial_ds_ea();earliest_arrival_pair(sources[i]);
-        initial_ds_ea(); shortest_path(sources[i]);
+        initial_ds_ea();
+//        shortest_path(sources[i]);
+        shortest_path_xuan(sources[i]);
     }
     
     print_avg_time();
@@ -980,8 +982,109 @@ void Graph::shortest_path(int source)
     t.stop();
     time_sum += t.GetRuntime();
 
-    build_shortestJourneys(source, shortestJourneyPointer, allHopJourneys);
 #ifdef __TEST__
+    build_shortestJourneys(source, shortestJourneyPointer, allHopJourneys);
+    print_shortest_results_test(source);
+#endif
+
+//    print_shortest_paths(source);
+}
+
+
+void Graph::edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<int>& t_min, vector<int>& t_LBD)
+{
+    vector<int> t_arrival; t_arrival.resize(V);
+    e_min.assign(V, std::make_tuple(-1,-1,-1));
+    t_min.assign(V, infinity);
+    int departTime = 0, intvlID = -1, newArrivTime = -1, nbr=-1;
+    for (int i = 0; i < V; i++)
+    {
+        t_arrival[i] = t_LBD[i];
+    }
+    for (int i=0;i<V;i++)
+    {
+        for (int j=0; j<vertices[i].numNbrs;j++)
+        {
+            nbr = vertices[i].neighbors[j].nbrId;
+            departTime = earliestUseEdgeAfterT(i, vertices[i].neighbors[j], t_LBD[i], intvlID);
+            if ( (departTime == -1) || (departTime >= infinity) || (intvlID == -1) )
+                continue;
+            newArrivTime = departTime + vertices[i].neighbors[j].edgeSchedules[intvlID].traveTime;
+            if (newArrivTime < t_arrival[nbr])
+            {
+                get<0>(e_min[nbr]) = i;     //prevNode
+                get<1>(e_min[nbr]) = j;
+                get<2>(e_min[nbr]) = intvlID;
+                t_min[nbr] = departTime;
+                t_arrival[nbr] = newArrivTime;
+            }
+        }
+    }
+}
+
+void Graph::shortest_path_xuan(int source)
+{
+    Timer t;
+    vector<vector<incrementalJourney>> allHopJourneys; allHopJourneys.resize(V); //At each hop there is a vector of foremost incremental journeys, discovered in that hop.
+    vector<std::pair<int, int>> shortestJourneyPointer; shortestJourneyPointer.resize(V);    // <hop count where journey ended, index in allHopJourneys on that hop>
+    vector<std::pair<int, int>> journey1; journey1.resize(V);    // <hop count where journey ended, index in allHopJourneys on that hop>  This is the J[v].
+    vector<std::pair<int, int>> journey2; journey2.resize(V);    // <hop count where journey ended, index in allHopJourneys on that hop>  This is the J[v].
+    vector<std::pair<int, int>>& currentJourney = journey1;     // references to journey, so they can be swaped every hop.
+    vector<std::pair<int, int>>& nextJourney = journey2;     // references to journey, so they can be swaped every hop.
+    vector<std::pair<int, int>>& tempSwap = journey1;     // references to journey, so they can be swaped every hop.
+    vector<int> t_LBD; t_LBD.resize(V);        // <earliestArrivalTime, hop in which this time achieved, index in allHopJourneys[thishop] vector.>
+    vector<std::tuple<int, int, int>> e_min; e_min.resize(V);   //prevNode, nbrIndex in nbrList, intvlId on the edge(prevNode,current node). current node is the index in vector.
+    vector<int> t_min; t_min.resize(V);
+    
+    t_LBD.assign(V, infinity);
+    journey1.assign(V, std::make_pair(-1, -1));
+    journey2.assign(V, std::make_pair(-1, -1));
+    shortestJourneyPointer.assign(V, std::make_pair(-1, -1));
+
+    incrementalJourney journeyIncrement(source, 0, -1, -1, -1, -1, -1);   //current node, arrTime, prevNode, prevEdgeId, prevIntvlId, pDep, indexInPrevHopV
+
+    t.start();
+    int hopCount = 0;
+    t_LBD[source] = 0;
+    allHopJourneys[hopCount].push_back(journeyIncrement);
+    currentJourney[source] = std::make_pair(hopCount, allHopJourneys[hopCount].size()-1);
+    shortestJourneyPointer[source] = currentJourney[source];
+
+    int  numNodesSeen = 1;      //Total number of nodes so far that don't have t_LBD as infinity.
+    while ( (hopCount < (V-1)) && (numNodesSeen < V))
+    {
+        hopCount++;
+        edgeAndScheduleSel(e_min,t_min, t_LBD);
+        for (int i= 0; i < V; i++)
+        {
+            if (get<0>(e_min[i]) != -1)     //e_min[i] (0) is the prevNode to i.
+            {
+                int prevNode = get<0>(e_min[i]);     //prevNode is u.
+                int nbrIndex = get<1>(e_min[i]); int intvlId = get<2>(e_min[i]);
+                int arrTime = t_min[i] + vertices[prevNode].neighbors[nbrIndex].edgeSchedules[intvlId].traveTime;
+                int hc_prevNode = get<0>(currentJourney[prevNode]);
+                int index_prevNode = get<1>(currentJourney[prevNode]);
+                incrementalJourney newIncrement(i, arrTime, prevNode, nbrIndex, intvlId, t_min[i], index_prevNode);
+                allHopJourneys[hopCount].push_back(newIncrement);
+                nextJourney[i] = std::make_pair(hopCount, allHopJourneys[hopCount].size()-1);
+                if (t_LBD[i] >= infinity)
+                    shortestJourneyPointer[i] = nextJourney[i];
+                t_LBD[i] = arrTime;
+            }
+            else
+            {
+                nextJourney[i] = currentJourney[i];
+            }
+        }
+        tempSwap = currentJourney;
+        currentJourney = nextJourney;
+        nextJourney = tempSwap;
+    }
+    t.stop();
+    time_sum += t.GetRuntime();
+
+#ifdef __TEST__
+    build_shortestJourneys(source, shortestJourneyPointer, allHopJourneys);
     print_shortest_results_test(source);
 #endif
 
