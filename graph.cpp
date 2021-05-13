@@ -122,7 +122,8 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop)
     wuFile.replace(wuFile.length()-4, len, wuOpEnd);
 
     
-    const char* intermediateFile = "/Users/anujjain/research/temporalGraph/WuTemporalGraph/tempath/intermediate.txt";
+    //const char* intermediateFile = "/Users/anujjain/research/temporalGraph/WuTemporalGraph/tempath/intermediate.txt";
+    const char* intermediateFile = "./intermediate.txt";
     
     lambda = 1;
     for (int dx=0; dx<numDrop; dx++)    //Drop the first line numDrop lines as they are comments.
@@ -991,8 +992,13 @@ void Graph::shortest_path(int source)
 }
 
 
-void Graph::edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<int>& t_min, vector<int>& t_LBD)
+int Graph::edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<int>& t_min, vector<int>& t_LBD)
 {
+    Timer t;
+    int numUpdated = 0;
+    static int numTimesCalled = 0;
+    int numNbrs = 0;
+    numTimesCalled++;
     vector<int> t_arrival; t_arrival.resize(V);
     for (int i=0; i < V; i++)
     {
@@ -1000,7 +1006,7 @@ void Graph::edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<
         t_min[i] = infinity;
         t_arrival[i] = t_LBD[i];
     }
-
+    t.start();
     int departTime = 0, intvlID = -1, newArrivTime = -1, nbr=-1;
     for (int i=0;i<V;i++)
     {
@@ -1018,9 +1024,14 @@ void Graph::edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<
                 get<2>(e_min[nbr]) = intvlID;
                 t_min[nbr] = departTime;
                 t_arrival[nbr] = newArrivTime;
+                numUpdated++;
             }
+            numNbrs++;
         }
     }
+    t.stop();
+    cout << "It took " << t.GetRuntime() << " secs to get through all edges. Num times called: " << numTimesCalled <<". Num Nbrs="<< numNbrs << endl;
+    return numUpdated;
 }
 
 void Graph::shortest_path_xuan(int source)
@@ -1055,7 +1066,9 @@ void Graph::shortest_path_xuan(int source)
     while ( (hopCount < (V-2)) && (numNodesSeen < V-1))
     {
         hopCount++;
-        edgeAndScheduleSel(e_min,t_min, t_LBD);
+        int numUpdated = edgeAndScheduleSel(e_min,t_min, t_LBD);
+        if (numUpdated == 0)
+            break;
         for (int i= 0; i < V; i++)
         {
             if (get<0>(e_min[i]) != -1)     //e_min[i] (0) is the prevNode to i.
