@@ -96,7 +96,7 @@ public:
     void earliest_arrival_fibo_external(int source);
     void shortest_path(int source);
     void shortest_path_xuan(int source);
-    void edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<int>& t_min, vector<int>& t_LBD);
+    int edgeAndScheduleSel(vector<std::tuple<int, int, int>>& e_min, vector<int>& t_min, vector<int>& t_LBD);
 
     
     void build_shortestJourneys(int source, vector<std::pair<int, int>>& shortestJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys);
