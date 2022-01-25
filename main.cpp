@@ -4,13 +4,17 @@
 //
 //  Created by Anuj Jain on 11/20/20.
 //
+// ./XuantemporalGraph earliest|shortest|mwf <filePath>
+
+// ./XuantemporalGraph wu <fileName> <1/2>(drop num Lines to drop)  <0/1>(normalize or not) //
 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <fstream>
 #include <algorithm>
-#include "graph.h"
+//#include "graph.h"
+#include "graphDualCriteria.hpp"
 #include "regHeap.hpp"
 using namespace std;
 #define VERTS_TEST 10
@@ -52,10 +56,19 @@ int main(int argc, const char * argv[]) {
     
     if(!strcmp(option,"wu"))
     {
-        int numDrop = 1;
+        int numDrop = 1, normalize=0;
         if (argc > 3)
             sscanf(argv[3],"%d",&numDrop);
-        Graph::wuGraph(argv[2], 2, numDrop);     //Drop the element after u, v.
+        if (argc > 4)
+            sscanf(argv[4],"%d",&normalize);
+
+        Graph::wuGraph(argv[2], 2, numDrop, normalize);     //2=Drop the element after u, v. numDrop= num of lines to drop. normalize=normalize the timestamps.
+        return 0;
+    }
+    
+    if(!strcmp(option,"xuan"))
+    {
+        Graph::readWuFile(argv[2]);
         return 0;
     }
 
@@ -64,8 +77,12 @@ int main(int argc, const char * argv[]) {
 
     if (argc > 3)
         contactSeq = 1;
-    Graph g(argv[2], contactSeq);
-    g.initial_query();
+    Graph *g;
+    if(/*!strcmp(option,"mwf") ||*/ (!strcmp(option,"mhf")) )
+        g = new GraphDualCriteria(argv[2], contactSeq);
+    else
+        g = new Graph(argv[2], contactSeq);
+    g->initial_query();
 
     t.stop();
     cout << "Reading time: " << t.GetRuntime() << "\n";
@@ -73,11 +90,19 @@ int main(int argc, const char * argv[]) {
 
     if(!strcmp(option,"earliest"))
     {
-        g.run_earliest_arrival();
+        g->run_earliest_arrival();
     }
-    if(!strcmp(option,"shortest"))
+    else if(!strcmp(option,"shortest"))
     {
-        g.run_shortest();
+        g->run_shortest();
+    }
+    else if(!strcmp(option,"mwf"))
+    {
+        g->run_mwf();
+    }
+    else if(!strcmp(option,"mhf"))
+    {
+        g->run_mhf();
     }
     std::cout << "Hello, World!\n";
     return 0;

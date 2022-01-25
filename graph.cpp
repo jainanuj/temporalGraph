@@ -17,6 +17,8 @@
 //#define MEASUREHEAP_DET 1
 #define __TEST__
 #define RUN_COUNT 100
+#define HOPCHECK 1000
+#define JOURCHECK 1000000
 
 
 #define sourceId 1
@@ -32,12 +34,18 @@ Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of
     string earliestOutputEnd = "_earliestResults.txt";
     string shortestOutputEnd = "_shortestResults.txt";
     string minHeapMonitorEnd = "_minHeapMon.txt";
+    string earliestMWFOutputEnd = "_mhfResults.txt";
 
     std::string opFile(filePath);
     unsigned long len = earliestOutputEnd.length();
     opFile.replace(opFile.length()-4, len, earliestOutputEnd);
     earliestResults = opFile;
-    
+
+    std::string opFile1(filePath);
+    len = earliestMWFOutputEnd.length();
+    opFile1.replace(opFile1.length()-4, len, earliestMWFOutputEnd);
+    mhfResults = opFile1;
+
     string opFile2(filePath);
     len = shortestOutputEnd.length();
     opFile2.replace(opFile2.length()-4, len, shortestOutputEnd);
@@ -58,11 +66,13 @@ Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of
     {
         vertices[i].numNbrs = 0;
         vertices[i].nodeId = i;
+        vertices[i].inDegree = 0;
     }
     for(int i = 0; i < dynamic_E; i ++)
     {
         x=fscanf(file, "%d %d %d", &u, &nbr.nbrId, &nbr.numIntvls); //(u, v, numIntvls)
         vertices[u].numNbrs++;
+        vertices[nbr.nbrId].inDegree += nbr.numIntvls;
         nbr.edgeSchedules.resize(nbr.numIntvls);
         int intvls = 0; int intvlRead;
         for (intvlRead = 0; intvlRead <  nbr.numIntvls; intvlRead++)
@@ -95,38 +105,31 @@ Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of
     fclose(file);
 }
 
-void Graph::wuGraph(const char* filePath, int noL, int numDrop)
+void Graph::wuGraph(const char* filePath, int noL, int numDrop, int normalizeWrite)
 {
 //    FILE* file = fopen(filePath,"r");
     
     ifstream inputFile(filePath);
     string inputLine;
     int drop = 0;
+    int minNodeId = infinity;
+    int vertexIdAdj = 0;
     
     int x, wuEdges = 0, vertices = 0;
 //    x=fscanf(file, "%d %d",&vertices, &wuEdges);
     vector<tuple<int, int, int, int>> inputRows;
-    compareTuple tupleCompXuan;
     compareTupleWu tupleCompWu;
     int u, v, t, lambda;
 //    inputRows.resize(wuEdges);
     
-    string xuanOpEnd = "_xuanOp.txt";
-    std::string opFile(filePath);
-    unsigned long len = xuanOpEnd.length();
-    opFile.replace(opFile.length()-4, len, xuanOpEnd);
-
     string wuOpEnd = "_wu.txt";
     std::string wuFile(filePath);
-    len = wuOpEnd.length();
+    unsigned long len = wuOpEnd.length();
     wuFile.replace(wuFile.length()-4, len, wuOpEnd);
 
-    
-    //const char* intermediateFile = "/Users/anujjain/research/temporalGraph/WuTemporalGraph/tempath/intermediate.txt";
-    const char* intermediateFile = "./intermediate.txt";
-    
+        
     lambda = 1;
-    for (int dx=0; dx<numDrop; dx++)    //Drop the first line numDrop lines as they are comments.
+    for (int dx=0; dx<numDrop; dx++)    //Drop the first numDrop lines as they are comments.
         getline(inputFile, inputLine);
     while (getline(inputFile, inputLine))
 //    for(int i = 0; i < wuEdges; i ++)
@@ -147,21 +150,75 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop)
         }
         inputRows.push_back(std::make_tuple(u, v, t, lambda));
         wuEdges++;
+        if (u < minNodeId)
+            minNodeId = u;
+        if (v < minNodeId)
+            minNodeId = v;
+
         if (u > vertices-1)
             vertices = u+1;
         if (v > vertices-1)
             vertices = v+1;
     }
+    if (minNodeId > 0)
+    {
+        vertices -= minNodeId;
+        vertexIdAdj=minNodeId;
+    }
 //    fclose(file);
     std::sort<vector<tuple<int, int, int, int>>::iterator, compareTupleWu>(inputRows.begin(), inputRows.end(), tupleCompWu);
     FILE* wuOutput = fopen(wuFile.c_str(), "w");
     fprintf(wuOutput, "%d %d\n", vertices, wuEdges);
+    int normalizeSub = 0;
+    if (normalizeWrite)
+        normalizeSub = get<2>(inputRows[0]);
+    else
+        normalizeSub = 0;
     for (int i = 0; i < inputRows.size(); i++)
     {
+        get<0>(inputRows[i]) = get<0>(inputRows[i]) - vertexIdAdj;
+        get<1>(inputRows[i]) = get<1>(inputRows[i]) - vertexIdAdj;
+        get<2>(inputRows[i]) = get<2>(inputRows[i]) - normalizeSub;
         fprintf(wuOutput, "%d %d %d %d\n", get<0>(inputRows[i]), get<1>(inputRows[i]), get<2>(inputRows[i]), get<3>(inputRows[i]) );
     }
     fclose(wuOutput);
     
+    buildXuanGraph(filePath, inputRows, vertices, wuEdges);
+}
+
+void Graph::readWuFile(const char* filePath)
+{
+    ifstream inputFile(filePath);
+    string inputLine;
+    int x, wuEdges = 0, vertices = 0; int u, v, t, lambda;
+
+    vector<tuple<int, int, int, int>> inputRows;
+
+    getline(inputFile, inputLine);
+    x = sscanf(inputLine.c_str(), "%d %d", &vertices, &wuEdges);
+    while (getline(inputFile, inputLine))
+    {
+        {
+            x = sscanf(inputLine.c_str(), "%d %d %d %d", &u, &v, &t, &lambda);
+        }
+        inputRows.push_back(std::make_tuple(u, v, t, lambda));
+        //wuEdges++;
+    }
+    buildXuanGraph(filePath, inputRows, vertices, wuEdges);
+}
+
+void Graph::buildXuanGraph(const char* filePath, vector<tuple<int, int, int, int>>& inputRows, int vertices, int wuEdges)
+{
+    compareTuple tupleCompXuan;
+    //const char* intermediateFile = "/Users/anujjain/research/temporalGraph/WuTemporalGraph/tempath/intermediate.txt";
+    const char* intermediateFile = "./intermediate.txt";
+    int u, v, t, lambda;
+
+    string xuanOpEnd = "_xuanOp.txt";
+    std::string opFile(filePath);
+    unsigned long len = xuanOpEnd.length();
+    opFile.replace(opFile.length()-4, len, xuanOpEnd);
+
     std::sort<vector<tuple<int, int, int, int>>::iterator, compareTuple>(inputRows.begin(), inputRows.end(), tupleCompXuan);
     FILE* fileToWrite = fopen(intermediateFile, "w");
     fprintf(fileToWrite, "%d %d\n", vertices, wuEdges);
@@ -222,6 +279,7 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop)
     
     collapseIntervalsWriteOuput(intermediateFile, opFile.c_str());      //Write the final output. Each Edge is in format ==> (u, v, intvlCount, [s, e, d])
 }
+
 
 void Graph::collapseIntervalsWriteOuput(const char *filePath, const char *opFile)
 {
@@ -515,10 +573,11 @@ void Graph::earliest_arrival(int source)
     time_sum += t.GetRuntime();
 }
 
-void Graph::earliest_arrival_pair(int source)
+tuple<int,int> Graph::earliest_arrival_pair(int source,int retRchd)
 {
     ofstream minHeapMonitorOutput(minHeapMonitor);
     unsigned long maxHeapSize = 0, avgHeapSize = 0, count = 0, currentAvg = 0;
+    int numNodesReached=0;
     Timer t;
 #ifdef MEASUREHEAP_DET
     clock_t ticks;
@@ -529,6 +588,7 @@ void Graph::earliest_arrival_pair(int source)
     int nodeID;
     int tDepart, intvlID = -1;
     vector<pair<int, int>> minHeap;    //Fix the pq to make it a min heap instead of max heap.
+    int maxFmstTime = 0;
     nodeComparison2 heapCompFn;
 
     bit_queue closedNodes((int)vertices.size());
@@ -557,6 +617,9 @@ void Graph::earliest_arrival_pair(int source)
             continue;
         }
         closedNodes.queue_add_bit(nodeID);         //Add it to the closedNodes.
+        numNodesReached++;
+        if (maxFmstTime < arr_time[nodeID])
+            maxFmstTime = arr_time[nodeID];
         u = &vertices[nodeID];
         for (int i = 0; i < u->numNbrs; i++)
         {
@@ -603,10 +666,13 @@ void Graph::earliest_arrival_pair(int source)
     minHeapMonitorOutput << "Rem Min Time: " << remMinTimer << "\n";
 #endif*/
 //    printResults(source);
+    if (retRchd == 1)
+        return make_tuple(numNodesReached,maxFmstTime);
     time_sum += t.GetRuntime();
 #ifdef __TEST__
     printEarliestResultsTest(source);
 #endif
+    return make_tuple(0,0);
 }
 
     
@@ -849,8 +915,8 @@ void Graph::printEarliestResultsTest(int source)
     earliestOut << V << "\n";
     for (int i = 0; i < arr_time.size(); i++)
     {
-        if (arr_time[i] >= infinity)
-            continue;
+//        if (arr_time[i] >= infinity)
+//            continue;
         earliestOut << i << " " << arr_time[i] << "  "  << "\n";
         rv++;
 /*#ifdef __TEST__
@@ -909,12 +975,32 @@ void Graph::run_shortest()
         //earliest_arrival(sources[i]);
         //initial_ds_ea();earliest_arrival_pair(sources[i]);
         initial_ds_ea();
-//        shortest_path(sources[i]);
-        shortest_path_xuan(sources[i]);
+        shortest_path(sources[i]);
+//        shortest_path_xuan(sources[i]);
     }
     
     print_avg_time();
 }
+
+void Graph::run_mwf()
+{
+    time_sum=0;
+    
+    for(int i = 0 ;i < sources.size() ;i ++)
+    {
+        initial_ds_ea();
+        //earliest_arrival(sources[i]);
+        //initial_ds_ea();earliest_arrival_pair(sources[i]);
+        //initial_ds_ea();
+//        shortest_path(sources[i]);
+        //minWaitForemost(sources[i]);
+ //       minWaitForemostPrioritized(sources[i]);
+        minWaitForemostPrioritizedNoSet(sources[i]);
+    }
+    
+    print_avg_time();
+}
+
 
 void Graph::shortest_path(int source)
 {
@@ -1108,7 +1194,737 @@ void Graph::shortest_path_xuan(int source)
 //    print_shortest_paths(source);
 }
 
+void Graph::minWaitForemost(int source)
+{
+    Timer t;
+    vecFullList.resize(V);
+    toExpandList.push_back(source);
 
+    t.start();
+    get<1>(vecFullList[source]).insert(make_tuple(0,0,source, 0, 0));
+    get<0>(vecFullList[source]).insert(make_tuple(0,0,0));        //journeys terminating at source (arr_tm, wait time)
+    mNumJourExtInst = 0;
+    
+    int exploreNode;
+    while (!toExpandList.empty())
+    {
+        exploreNode = toExpandList.front();
+        extendMWFJourneys(exploreNode);
+        toExpandList.pop_front();
+    }
+    t.stop();
+    time_sum += t.GetRuntime();
+    printMWFWalks(source);
+}
+
+void Graph::printMWFWalks(int source)
+{
+    int prevNode, departTime, arrTime, waitTime, numRchableVerts = 0;
+    set <tuple<int, int, int, int, int>, compareMFSetElements >::iterator itMWFJourney;
+    cout << "output format: dest(arr,wait_time)<--(depTime)node..\n";
+    for (int i=0; i < V; i++)
+    {
+        if (i==source)
+        {
+            numRchableVerts++;
+            cout << source << "\n";
+            continue;
+        }
+        prevNode = i;
+        if ((get<1>(vecFullList[prevNode])).empty())
+            continue;
+        numRchableVerts++;
+        itMWFJourney = (get<1>(vecFullList[prevNode])).begin();
+        cout << "Walk: "<< i << " ";// << "("<< get<0>(*itMWFJourney) <<","<<get<1>(*itMWFJourney)<<")";//\n";
+        arrTime = get<0>(*itMWFJourney); waitTime = get<1>(*itMWFJourney);
+        //cout << arrTime*100+waitTime << "\n";
+        prevNode = get<2>(*itMWFJourney); departTime = get<3>(*itMWFJourney);
+        while (prevNode != source)
+        {
+            cout << "("<< arrTime <<","<<waitTime<<")";
+            cout << "<--"  << "(" << departTime <<")"<< prevNode;
+            itMWFJourney = (get<1>(vecFullList[prevNode])).lower_bound(make_tuple(departTime,0,0,0,0));
+            if (itMWFJourney == (get<1>(vecFullList[prevNode])).end())
+                --itMWFJourney;
+            else if (departTime < get<0>(*itMWFJourney))
+                --itMWFJourney;
+            
+            arrTime = get<0>(*itMWFJourney);
+            waitTime = get<1>(*itMWFJourney);
+            prevNode = get<2>(*itMWFJourney);
+            departTime = get<3>(*itMWFJourney);
+            if((get<1>(vecFullList[prevNode])).empty())
+            {
+                cout << "Something went wrong\n\n";
+                break;
+            }
+        }
+        cout << "("<< arrTime <<","<<waitTime<<")";
+        cout << "<--"  << "(" << departTime << ")" << prevNode << "\n\n";
+    }
+    cout << "Num Reachable: " << numRchableVerts << endl;
+}
+
+void Graph::extendMWFJourneys(int exploreNode)
+{
+    set<tuple<int, int, int>>::iterator itNewJourneySet;
+    tuple<int, int, int> journeyToExpand;
+    while (!get<0>(vecFullList[exploreNode]).empty())
+    {
+        itNewJourneySet = (get<0>(vecFullList[exploreNode])).begin();
+        journeyToExpand = *itNewJourneySet;
+        extendJourney(journeyToExpand, exploreNode);
+        (get<0>(vecFullList[exploreNode])).erase(itNewJourneySet);
+    }
+}
+
+/************************************************************************************************************************************
+ while TEL not empty do
+   (u) = TEL.delete(); //  u has atleast one new journey.
+   while FL[u]<1> not empty do. //FL[u]<1> represents second set in the tuple of wo sets stored at FL[u].
+      (t,m) = FL[u]<1>.delete(); //t is arrival time at u, m is wait time upto u.
+       for each (u,v) in E do
+           generate the necessary one-edge expansions (v,t',m') of (u,t,m) one by one;
+           if (t',m') is not dominated by a tuple in FL[v]<0>
+                {FL[v]<0>.insert(t',m',u); // insert eliminates tuples in FL[v]<0> dominated by (t',m'). u is the previous node that is only used when tracing back paths.
+                 FL[v]<1>.insert(t',m');  //set of new journeys. this should also eliminate dominated tuples
+                  TEL.insert(v);} //This indicates v has some new journeys to be explored in the next iteration.
+ **********************************************************************************************************************************/
+
+/************************************************************************************************************************************
+t_mwf[s] = (0,0); t_mwf[x] = (inf,inf) for all x neq s;
+ Each node has 2 lists: FullList (FL) and ToExpandList (TEL). both lists are empty to begin with except FL[s] = (0,0) and TEL[s] = (0.0);
+ PQ.insert(s,0,0)u=s;
+ numNodesClosed++;
+while ((numNodesClosed < N) && (PQ.notEmpty))
+ {      (u,a,w) = PQ.removeMin();      //This PQ is on min a. If tie on min a, min w among all min a is picked.
+    If ( u is not closed already)
+    {       Mark u closed //(mwf walk has been found to u);
+        numNodesClosed++;
+    }
+    else if (u,a,w) is marked dominated.  //This can only happen if u was already closed.
+        continue;
+    for each neighbor v of u
+    {       generate necessary expansions (v,a',w') from u to v, using journeys in TEL[u];
+        If (v,a',w') is not dominated by journeys in FL[v]
+        {        Insert (v,a',w') in FL[v];
+            Mark all the subsequent journeys FL[v] that are dominated by (a',w') as dominated;
+            Insert (v,a',w') in the PQ;  //This can be done after all journeys to v have been expanded to avoid inserting dominated journeys in PQ.
+        }
+    }
+ }
+ **********************************************************************************************************************************/
+
+/******************
+ u=s; nodesReached=1; a(u)=0;w(u)=0
+ mwf[s]=(tstart,0)
+ An array lastJourney[] is mantained that stores only the last non dominated journey at every node.
+while (nodesReached < N)
+ {
+    for each nbr of u
+    {
+        insert in min heap all necessary expansions as [arrivalTime,waitTime,nbr]
+    }
+    nonDominatedJFound=False;
+    while (!nonDominatedJFound && !heap.empty() )
+     {
+        remove min as (a,w, v).        (based on arrivalTime; Tie-breaker with waitTime) //a=arrivalTime, w=waitTime, v=nodeId
+        if (v,a,w) not dominated by the last journey at (v)
+            lastJourney[v] = (a,w)                  //Replace last journey at v with (v,a,w)
+            u=v,a(u)=a,w(u)=w
+            nonDominatedJFound=true;
+        else
+            continue;
+        If (v is reached first time.)
+            mwf[v] = (a,w)
+            nodesReached++
+     }
+ }
+***********************/
+
+
+/*************************
+ Represent each interval as {u,v,u_nbrIndx,(s,e),lambda,prevJourneyIndex} in a list Intvls[]        //u_nbrIndx represents index of v in nbrs list of u.
+ journey is represented as (a,w,prevNode,lastExpAt) where lastExpAt is (s,lambda) or NULL.
+ Sort Intvls[] in order of s+lambda
+ The whole graph is also stored in verts[]. For each node, list of nbrs. And for each nbr, list of intervals.
+ PQ mergeIntvls = {}            //PQ with arrival time (s+lambda) as the key. When there is a tie, s is the key.
+ listJ[u] is a set sorted list (by arrival time) of journeys arrived at node u
+ for each u { openIntvl[u] = null; listJ[u] = {} }
+ listJ[s][0]={t_start,0}
+ newJourney = listJ[s].last();
+ for each nbr w of s
+     nextIntvl = nextFn(s,w,t_start)
+     If (nextIntvl.s >= newJourney.a)
+         vert[v][w][nextIntvl].prevJourneyIndex = listJ[s].last();     //Can be stored as Id in listJ[v]
+     else If (listJ[v].lastJ.arr > nextIntvl.s and < nextIntvl.e)
+         e = nextIntvl.e;
+         newIntvlCreated=(s,w,listJ[u].end().arr,e,nextIntvl.lambda);
+         newIntvlCreated.prevJourney=listJ[s].last();
+         Insert(mergeIntvls, {newIntvlCreated})
+ numNodesRchd = 1;      //source has been rchd.
+ newIntvl = min (top(Intvls, mergeIntvls));     //Comparison of arrTime= s+lambda and secondary start time.
+ while ( (Intvls[] || mergeIntvls[]) && (numNodesRchd < reachable) )
+ {
+    currArrivalTime = newIntvl.arrTime
+    numNewNodesRchd=0;
+    while (newIntvl != NULL && currArrialTime == newIntvl.arrTime)
+    {
+        removeMin(top(Intvls,mergeIntvls)
+        If (newIntvl.Id != -1)      //this means this intvl came from static set of intvls.
+            prevJourneyIndex=vert[u][v][newIntvl.Id].prevJourneyIndex;
+        else        //This means this intvl came from mergeIntvls list and was created by breaking up existing interval.
+            prevJourneyIndex=newIntvl.prevJourneyIndex
+        if (prevJuorneyIndex==-1)
+        {
+            If (listJ[u].last().arr < newIntvl.strt)
+                prevJourneyIndex=listJ[u].last()
+            else
+                search prevJourney in listJ[u] (journey with arrTm <= newIntvl.strtTime)
+        }
+        If no previousJourneyFound
+            continue;
+        If (listJ[u][prevJourneyIndex].expandedIntvl[v].lambda <  newIntvl.lambda or listJ[u][prevJourneyIndex].expandedIntvl[v] == null)       //Based on intvl dominance criteria. (lambda > lastLambda )
+        {
+            newJourney.a=newIntvl.s+newIntvl.lambda;            //This will be extension of the journey at prevJourneyIndex
+            newJourney.w=listJ[u][prevJourneyIndex].w+newIntvl.s-listJ[u][prevJourneyIndex].arr;      //This will be extension of the journey at prevJourneyIndex
+            listJ[u][prevJourneyIndex].expandedIntvl[v] = {newIntvl};
+            If (newJourney not dominated by listJ[v].last() || listJ[v] == null)     //Dominance based on mwf criteria.
+                If (mwf[v] == NULL)
+                    mwf[v]=newJourney;
+                    numNewNodesRchd++;
+                else if ((newJourney.arrTm,newJourney.wtTime) < (mwf[v].arrTm,mwf[v].wtTime))
+                    mwf[v]=newJourney;
+                listJ[v].append(newJourney);
+                for each nbr w of v
+                    nextIntvl = nextFn(v,w,newJourney.arr)        //This operates on static input intvl temporal graph
+                    If ( newJourney.a <= nextIntvl.s)
+                        vert[v][w][nextIntvl].prevJourneyIndex = listJ[v].last();     //Can be stored as Id in listJ[v]
+                        newJourney.nexFnInt[w]=nextIntvl
+                    else If (newJourney.arr > nextIntvl.s and < nextIntvl.e)
+                        e = nextIntvl.e;
+                        newIntvlCreated=(v,w,newJourney.arr,e,nextIntvl.lambda);        //Sub-interval of the static intvl created as all journeys exit at start of an interval.
+                        newIntvlCreated.prevJourneyIndex=newJourney;
+                        Insert(mergeIntvls, {newIntvlCreated})
+        }
+        else
+            ignore intvl for expansion.
+        newIntvl = min (top(Intvls, mergeIntvls));     //Comparison of arrTime= s+lambda and secondary start time.
+    }
+    numNodesRchd+= numNewNodesRchd;
+ }
+ 
+ ****************************/
+
+void Graph::minWaitForemostPrioritizedNoSet(int source)
+{
+    Timer t;
+    int numNodesFinalized = 1;
+    int numHeapAdded=0, numJourneysFinalized=0;
+    vecTuple.resize(V);
+    mwfJourneys.resize(V);
+    for (int i=0;i<V;i++)
+    {
+        vecTuple[i]=make_tuple(-1,-1,-1,-1);
+        mwfJourneys[i]=make_tuple(-1,-1,-1,-1);
+    }
+    nodeCompareArrWt heapCompFn;
+
+    bit_queue closedNodes((int)vertices.size());
+    closedNodes.queue_add_bit(source);
+    tuple<int,int,int,int> currJourney = make_tuple(t_start,0,0,source);
+    mwfJourneys[source] =currJourney;
+    vecTuple[source] = currJourney;
+    int nbr, intvlID, departTime, newArrivTime, newWaitTime;
+    bool isDominated;
+    bool bFoundNewViableJourney=false;
+    t.start();
+    tuple<int,int> nodesRchable_maxFmstTime = earliest_arrival_pair(source,1); //4092652
+    int nodesReachable= get<0>(nodesRchable_maxFmstTime), maxFmstTime=get<1>(nodesRchable_maxFmstTime);
+    cout << "Num Nodes Reachable: " << nodesReachable << endl;
+    while (numNodesFinalized < nodesReachable)
+    {
+//        if (numHeapAdded % 1000000 == 0)
+//            cout << "NumHeapAdded: " << numHeapAdded << " numFinal: " << numJourneysFinalized << " numNodesFinal: " << numNodesFinalized << endl;
+        int node = get<3>(currJourney), arrTime = get<0>(currJourney), wtTime = get<1>(currJourney), numHops;
+        for (int j=0; j<vertices[node].numNbrs;j++)
+        {
+            nbr = vertices[node].neighbors[j].nbrId;
+            departTime = earliestUseEdgeAfterT(node, vertices[node].neighbors[j], arrTime, intvlID);
+            if ( (departTime == -1) || (departTime >= infinity) || (intvlID == -1) ) //or departTime > max fmst arrival time. EARLYTMNT
+                continue;
+//            do {      // UNCOMMENT        For konect graphs all travel times are 1 so only first possible interval needs to be considered.
+                newArrivTime = departTime + vertices[node].neighbors[j].edgeSchedules[intvlID].traveTime;
+                if (newArrivTime > maxFmstTime)     //This can be simply discarded as arrTime is too high.
+                    continue;
+                if ((node == source) && (arrTime==t_start))  //this is nbr of source & start of the journey
+                    newWaitTime = 0;
+                else
+                    newWaitTime = departTime-arrTime+wtTime;   //get<0> is arrival time at node and get<1> is wait time till node.
+                numHops=get<2>(currJourney)+1;
+                if (get<3>(vecTuple[nbr]) != -1)
+                {
+                    isDominated= checkDominance(make_tuple(get<0>(vecTuple[nbr]), get<1>(vecTuple[nbr])), make_tuple(newArrivTime,newWaitTime));
+                    if (isDominated)
+                        continue;
+                }
+                minHeap.push_back(make_tuple(newArrivTime,newWaitTime,numHops,nbr));
+                std::push_heap(minHeap.begin(), minHeap.end(), heapCompFn);
+                numHeapAdded++;
+                intvlID++;
+                if (intvlID < vertices[node].neighbors[j].numIntvls)
+                    departTime = vertices[node].neighbors[j].edgeSchedules[intvlID].intvlStart;
+                    
+  //          } while (intvlID < vertices[node].neighbors[j].numIntvls);
+        }
+        //remove min
+        bFoundNewViableJourney=false;
+        while ((!bFoundNewViableJourney) && !(minHeap.empty()))
+        {
+            currJourney = minHeap.front();
+            std::pop_heap(minHeap.begin(), minHeap.end(), heapCompFn); minHeap.pop_back();
+            node = get<3>(currJourney); arrTime = get<0>(currJourney); wtTime = get<1>(currJourney);numHops=get<2>(currJourney);
+            if (get<3>(vecTuple[node]) != -1)
+            {
+                isDominated= checkDominance(make_tuple(get<0>(vecTuple[node]), get<1>(vecTuple[node])), make_tuple(arrTime,wtTime));
+                if (!isDominated)
+                {
+                    bFoundNewViableJourney = true;
+                    vecTuple[node] = currJourney;
+                    numJourneysFinalized++;
+                }
+                else
+                    continue;
+            }
+            else if (!closedNodes.check_bit_obj_present(node))
+            {
+                closedNodes.queue_add_bit(node);
+                mwfJourneys[node]=currJourney;
+                numNodesFinalized++;
+                bFoundNewViableJourney = true;
+                vecTuple[node] = currJourney;
+                numJourneysFinalized++;
+            }
+        }
+    }
+    t.stop();
+    time_sum += t.GetRuntime();
+    printMWFWalksPrioritizedNoSet(source);
+    cout << "NumHpItems: " << numHeapAdded << " NumJourneysF: " << numJourneysFinalized << " NumNodesRchable: " << numNodesFinalized << endl;
+}
+
+void Graph::printMWFWalksPrioritizedNoSet(int source)
+{
+    int numRchd=0;
+    for (int i=0;i<V;i++)
+    {
+//        if (get<3>(mwfJourneys[i]) != -1)
+//        {
+            cout << i << " " << get<0>(mwfJourneys[i]) << " " << get<1>(mwfJourneys[i]) << " " << get<2>(mwfJourneys[i]) << endl;
+            numRchd++;
+//        }
+    }
+//    cout << "Rchd: " << numRchd << endl;
+}
+
+
+void Graph::minWaitForemostPrioritized(int source)
+{
+    Timer t;
+    int numNodesFinalized = 0;
+    tuple<int,int> nodesRchable_maxFmstTime = earliest_arrival_pair(source,1); //4092652
+    int nodesReachable= get<0>(nodesRchable_maxFmstTime), maxFmstTime=get<1>(nodesRchable_maxFmstTime);
+    vecFullListPriority.resize(V);
+    nodeCompareArrWt heapCompFn;
+
+    bit_queue closedNodes((int)vertices.size());
+    vecFullListPriority[source].insert(make_tuple(t_start,0,source,0,0,false));       //arr,wt,prevNd,prevDprt,numHops
+    minHeap.push_back(std::make_tuple(t_start, 0,0, source));
+
+    t.start();
+    mNumJourExtInst = 0;
+    tuple<int,int,int,int> exploreJourney;
+    tuple<int,int,int,int,int,bool> journeyToFind;
+    set <tuple<int, int, int, int, int, bool>, compareMFSetElementsPrioritized >::iterator itPrioritizedSet;
+    while ((numNodesFinalized<nodesReachable) && !(minHeap.empty()))        //Make sure numReachable is set appropriately. TBD
+    {
+        exploreJourney = minHeap.front();
+        std::pop_heap<vector<tuple<int,int,int,int>>::iterator, nodeCompareArrWt>(minHeap.begin(), minHeap.end(), heapCompFn);
+        minHeap.pop_back();      //moves the min element to last and then removes it from heap.
+        int nodeID=get<3>(exploreJourney);
+        get<0>(journeyToFind)=get<0>(exploreJourney);
+        get<1>(journeyToFind)=get<1>(exploreJourney);get<2>(journeyToFind)=0;
+        get<3>(journeyToFind)=0;get<4>(journeyToFind)=0;get<5>(journeyToFind)=false;
+        itPrioritizedSet = vecFullListPriority[nodeID].find(journeyToFind);
+        if (itPrioritizedSet == vecFullListPriority[nodeID].end()) {
+//            cout <<"Journey in PQ was not found on the node. This means journey was dominated"<<endl;
+            if (!closedNodes.check_bit_obj_present(nodeID))
+                cout <<"Node is not closed but journey in PQ was dominated. This should never happen. Node:"<<nodeID<<endl;
+            continue;
+        }
+        if (!closedNodes.check_bit_obj_present(nodeID))
+        {
+            closedNodes.queue_add_bit(nodeID);
+            numNodesFinalized++;
+        }      //Num finalized journeys should be checked imm. after this, so unnecessary are not expanded. should use do-while TBD.
+        extendPrioritizedJourney(exploreJourney, nodeID);
+/**
+ for each neighbor v of u
+ {       generate necessary expansions (v,a',w') from u to v;
+     If (v,a',w') is not dominated by journeys in FL[v]
+     {        Insert (v,a',w') in FL[v];
+         Mark all the subsequent journeys FL[v] that are dominated by (a',w') as dominated;
+         Insert (v,a',w') in the PQ;
+     }
+ }
+
+ */
+    }
+    t.stop();
+    time_sum += t.GetRuntime();
+    printMWFWalksPrioritized(source);
+}
+
+void Graph::printMWFWalksPrioritized(int source)
+{
+    int prevNode, departTime, arrTime, waitTime, currNode, numRchableVerts = 0;
+    set <tuple<int, int, int, int, int, bool>, compareMFSetElementsPrioritized >::iterator itMWFJourney;
+    cout << "output format: dest(arr,wait_time)<--(depTime)node..\n";
+    for (int i=0; i < V; i++)
+    {
+        if (i==source)
+        {
+            numRchableVerts++;
+            cout << source << " 0 0" << endl;
+            continue;
+        }
+        currNode = i;
+        if (vecFullListPriority[currNode].empty())
+            continue;
+        numRchableVerts++;
+        itMWFJourney = vecFullListPriority[currNode].begin();
+//        cout << "Walk: "<< currNode << " ";// << "("<< get<0>(*itMWFJourney) <<","<<get<1>(*itMWFJourney)<<")";//\n";
+        arrTime = get<0>(*itMWFJourney); waitTime = get<1>(*itMWFJourney);
+        //cout << arrTime*100+waitTime << "\n";
+        prevNode = get<2>(*itMWFJourney); departTime = get<3>(*itMWFJourney);
+//        cout << "("<< arrTime <<","<<waitTime<<")";
+//        cout << "<--"  << "(" << departTime <<")"<< prevNode;
+        
+        cout <<  i << " " << arrTime << " " << waitTime << " " << endl;
+/*        while (!((prevNode == source) && (currNode == source)))
+        {
+            //cout << "("<< arrTime <<","<<waitTime<<")";
+            //cout << "<--"  << "(" << departTime <<")"<< prevNode;
+            currNode=prevNode;
+            itMWFJourney = vecFullListPriority[currNode].lower_bound(make_tuple(departTime,0,0,0,0,false));
+            if (itMWFJourney == vecFullListPriority[prevNode].end())
+                --itMWFJourney;
+            else if (departTime < get<0>(*itMWFJourney))
+                --itMWFJourney;
+            
+            arrTime = get<0>(*itMWFJourney);
+            waitTime = get<1>(*itMWFJourney);
+            prevNode = get<2>(*itMWFJourney);
+            departTime = get<3>(*itMWFJourney);
+            if(vecFullListPriority[prevNode].empty())
+            {
+                cout << "Something went wrong\n\n";
+                break;
+            }
+        }*/
+//        cout << "("<< arrTime <<","<<waitTime<<")";
+//        cout << "<--"  << "(" << departTime << ")" << prevNode << "\n\n";
+    }
+    cout << "Num Reachable: " << numRchableVerts << endl;
+}
+
+
+void Graph::extendPrioritizedJourney(tuple<int,int, int,int> inJourney, int node)
+{
+    int nbr, intvlID, departTime, newArrivTime, newWaitTime, numHops;
+    bool isDominated;
+    for (int j=0; j<vertices[node].numNbrs;j++)
+    {
+        nbr = vertices[node].neighbors[j].nbrId;
+        departTime = earliestUseEdgeAfterT(node, vertices[node].neighbors[j], get<0>(inJourney), intvlID);
+        if ( (departTime == -1) || (departTime >= infinity) || (intvlID == -1) ) //or departTime > max fmst arrival time. EARLYTMNT
+            continue;
+//        do {      // UNCOMMENT
+            newArrivTime = departTime + vertices[node].neighbors[j].edgeSchedules[intvlID].traveTime;
+            newWaitTime = departTime-get<0>(inJourney)+get<1>(inJourney);   //get<0> is arrival time at node and get<1> is wait time till node.
+            numHops = get<2>(inJourney)+1;
+            isDominated = checkDominatedAndInsertPrioritized(nbr,make_tuple(newArrivTime,newWaitTime, node, departTime, numHops,false));     //Check if this is dominated by the journeys already present at nbr.
+//            if (!isDominated)
+  //              toExpandList.insert(nbr);
+            intvlID++;
+            if (intvlID < vertices[node].neighbors[j].numIntvls)
+                departTime = vertices[node].neighbors[j].edgeSchedules[intvlID].intvlStart;
+                
+  //      } while (intvlID < vertices[node].neighbors[j].numIntvls);
+    }
+}
+
+bool Graph::checkDominatedAndInsertPrioritized(int destNode,tuple<int, int, int, int, int, bool> newJourney)
+{
+    if (vecFullListPriority[destNode].empty())
+    {
+        insertPrioritizedInJourneySets(destNode, newJourney, vecFullListPriority[destNode].begin());
+        return false;
+    }
+    set <tuple<int, int, int, int, int, bool>, compareMFSetElementsPrioritized >::key_compare compUsed = vecFullListPriority[destNode].key_comp();
+    set <tuple<int, int, int, int, int, bool>, compareMFSetElementsPrioritized >::iterator itJourneySet = vecFullListPriority[destNode].lower_bound(newJourney);
+    
+    if (itJourneySet == vecFullListPriority[destNode].end())
+    {
+        --itJourneySet;
+        if (checkDominance(make_tuple(get<0>(*itJourneySet), get<1>(*itJourneySet)), make_tuple(get<0>(newJourney), get<1>(newJourney)) ) )
+            return true;
+        else
+        {
+            insertPrioritizedInJourneySets(destNode, newJourney, vecFullListPriority[destNode].end());
+            return false;
+        }
+    }
+    if (compUsed(newJourney,*itJourneySet)) //newJourney < *itjourneyset. This ensures if same journey present it is not inserted again.
+    {
+        if (itJourneySet==vecFullListPriority[destNode].begin())        //First journey is arriving later, so new journey can't be dominated.
+        {
+            insertPrioritizedInJourneySets(destNode, newJourney, vecFullListPriority[destNode].begin());
+            return false;
+        }
+        else
+        {
+            --itJourneySet;     //Journey previous to the one that was first to be bigger than newJourney.
+            if ( checkDominance(make_tuple(get<0>(*itJourneySet), get<1>(*itJourneySet)), make_tuple(get<0>(newJourney), get<1>(newJourney)) ) )
+                return true;
+            else
+            {
+                insertPrioritizedInJourneySets(destNode, newJourney, ++itJourneySet);          //Insert before the iterator itJourneySet.
+                return false;
+            }
+        }
+    }
+    else        //Another journey with exact same arrival time and wait time already present. So consider this dominated as it is not a new journey.
+        return true;
+}
+
+//Insert in both sets
+//Erase all subsequent journeys that are now dominated by this.
+void Graph::insertPrioritizedInJourneySets(int destNode, tuple<int,int,int,int, int,bool> newJourney, set <tuple<int, int, int,int, int, bool>, compareMFSetElementsPrioritized >::iterator itInsertPos)
+{
+    nodeCompareArrWt heapCompFn;
+    set <tuple<int, int, int,int, int, bool>, compareMFSetElementsPrioritized >::iterator nextPos =  vecFullListPriority[destNode].insert(itInsertPos, newJourney);
+    //Also insert it into the priority queue.//****************//
+    minHeap.push_back(make_tuple(get<0>(newJourney), get<1>(newJourney), get<4>(newJourney), destNode));
+    std::push_heap(minHeap.begin(), minHeap.end(), heapCompFn);
+    
+    tuple<int, int> newJourneySansPrev = make_tuple(get<0>(newJourney), get<1>(newJourney));
+    bool bDominates = true;
+    tuple<int, int, int,int, int, bool> nextJourney;
+    ++nextPos;
+    while ((nextPos != vecFullListPriority[destNode].end()) && bDominates)
+    {
+        nextJourney = *nextPos;
+        if (checkDominance(newJourneySansPrev,
+                           make_tuple(get<0>(nextJourney), get<1>(nextJourney)) ) )
+            nextPos = vecFullListPriority[destNode].erase(nextPos); //If they are erased from the set. They won't be found when examined from heap. This means they were dominated.
+        else
+            bDominates = false;
+    }
+#ifdef __TEST__
+    /*
+    if (vecFullListPriority[destNode].size() > vertices[destNode].inDegree)
+        cout << "Too many in journeys at: " << destNode << ". InDegree=" << vertices[destNode].inDegree << ". in journeys="  << get<1>(vecFullList[destNode]).size() << endl;
+     */
+    mNumJourExtInst++;
+    int numHops=get<4>(newJourney);
+/*    if ((mNumJourExtInst % JOURCHECK) == 0)
+    {
+        cout << "At jour: " << mNumJourExtInst << "At dest: " << destNode << " NumHops=" << numHops << " PrevNode:"<<get<2>(newJourney)<<" DepTm:"<<get<3>(newJourney)
+        <<" ArrTm:"<<get<0>(newJourney)<<" WtTime:"<<get<1>(newJourney)<<endl;
+    }
+ */
+
+//    if ((numHops % HOPCHECK) == 0)
+//        cout << "At dest: " << destNode << " NumHops=" << numHops << " PrevNode:"<<get<2>(newJourney)<<" DepTm:"<<get<3>(newJourney)
+//                <<" ArrTm:"<<get<0>(newJourney)<<" WtTime:"<<get<1>(newJourney)<<endl;
+    
+#endif
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Every journey has number of hops associated with it.
+//So append #of hops for every journey.
+//When journey is picked up for extension, check #of hops and print every million multiple hops.
+void Graph::extendJourney(tuple<int,int, int> inJourney, int node)
+{
+    int nbr, intvlID, departTime, newArrivTime, newWaitTime, numHops;
+    bool isDominated;
+    for (int j=0; j<vertices[node].numNbrs;j++)
+    {
+        nbr = vertices[node].neighbors[j].nbrId;
+        departTime = earliestUseEdgeAfterT(node, vertices[node].neighbors[j], get<0>(inJourney), intvlID);
+        if ( (departTime == -1) || (departTime >= infinity) || (intvlID == -1) ) //or departTime > max fmst arrival time. EARLYTMNT
+            continue;
+        do {      //TBD UNCOMMENT
+            newArrivTime = departTime + vertices[node].neighbors[j].edgeSchedules[intvlID].traveTime;
+            newWaitTime = departTime-get<0>(inJourney)+get<1>(inJourney);   //get<0> is arrival time at node and get<1> is wait time till node.
+            numHops = get<2>(inJourney)+1;
+            isDominated = checkDominatedAndInsert(nbr,make_tuple(newArrivTime,newWaitTime, node, departTime, numHops));     //Check if this is dominated by the journeys already present at nbr.
+//            if (!isDominated)
+  //              toExpandList.insert(nbr);
+            intvlID++;
+            if (intvlID < vertices[node].neighbors[j].numIntvls)
+                departTime = vertices[node].neighbors[j].edgeSchedules[intvlID].intvlStart;
+                
+        } while (intvlID < vertices[node].neighbors[j].numIntvls);
+    }
+}
+
+bool Graph::checkDominatedAndInsert(int destNode,tuple<int, int, int, int, int> newJourney)
+{
+    if (get<1>(vecFullList[destNode]).empty())
+    {
+        insertInJourneySets(destNode, newJourney, get<1>(vecFullList[destNode]).begin());
+        return false;
+    }
+    set <tuple<int, int, int, int, int>, compareMFSetElements >::key_compare compUsed = get<1>(vecFullList[destNode]).key_comp();
+    set <tuple<int, int, int, int, int>, compareMFSetElements >::iterator itJourneySet = get<1>(vecFullList[destNode]).lower_bound(newJourney);
+    if (itJourneySet == get<1>(vecFullList[destNode]).end())
+    {
+        --itJourneySet;
+        if (checkDominance(make_tuple(get<0>(*itJourneySet), get<1>(*itJourneySet)), make_tuple(get<0>(newJourney), get<1>(newJourney)) ) )
+            return true;
+        else
+        {
+            insertInJourneySets(destNode, newJourney, get<1>(vecFullList[destNode]).end());
+            return false;
+        }
+    }
+    if (compUsed(newJourney,*itJourneySet))     //newJourney < *itjourneyset.
+    {
+        if (itJourneySet==get<1>(vecFullList[destNode]).begin())        //First journey is arriving later, so new journey can't be dominated.
+        {
+            insertInJourneySets(destNode, newJourney, get<1>(vecFullList[destNode]).begin());
+            return false;
+        }
+        else
+        {
+            --itJourneySet;     //Journey previous to the one that was first to be bigger than newJourney.
+            if ( checkDominance(make_tuple(get<0>(*itJourneySet), get<1>(*itJourneySet)), make_tuple(get<0>(newJourney), get<1>(newJourney)) ) )
+                return true;
+            else
+            {
+                insertInJourneySets(destNode, newJourney, ++itJourneySet);          //Insert before the iterator itJourneySet.
+                return false;
+            }
+        }
+    }
+    else        //Another journey with exact same arrival time and wait time already present. So consider this dominated as it is not a new journey.
+        return true;
+}
+
+//Insert in both sets
+//Erase all subsequent journeys that are now dominated by this.
+void Graph::insertInJourneySets(int destNode, tuple<int,int,int,int, int> newJourney, set <tuple<int, int, int,int, int>, compareMFSetElements >::iterator itInsertPos)
+{
+    set <tuple<int, int, int,int, int>, compareMFSetElements >::iterator nextPos =  get<1>(vecFullList[destNode]).insert(itInsertPos, newJourney);
+    tuple<int, int> newJourneySansPrev = make_tuple(get<0>(newJourney), get<1>(newJourney));
+    tuple<int, int, int> newJourneySansPrevWHops = make_tuple(get<0>(newJourney), get<1>(newJourney), get<4>(newJourney));
+    bool bDominates = true;
+    tuple<int, int, int,int, int> nextJourney;
+    ++nextPos;
+    while ((nextPos != get<1>(vecFullList[destNode]).end()) && bDominates)
+    {
+        nextJourney = *nextPos;
+        if (checkDominance(newJourneySansPrev,
+                           make_tuple(get<0>(nextJourney), get<1>(nextJourney)) ) )
+            nextPos = get<1>(vecFullList[destNode]).erase(nextPos);
+        else
+            bDominates = false;
+    }
+#ifdef __TEST__
+    /*
+    if (get<1>(vecFullList[destNode]).size() > vertices[destNode].inDegree)
+        cout << "Too many in journeys at: " << destNode << ". InDegree=" << vertices[destNode].inDegree << ". in journeys="  << get<1>(vecFullList[destNode]).size() << endl;
+     */
+    mNumJourExtInst++;
+    if ((mNumJourExtInst % JOURCHECK) == 0)
+    {
+        cout << "At dest: " << mNumJourExtInst <<endl;
+    }
+
+    int numHops=get<4>(newJourney);
+    if ((numHops % HOPCHECK) == 0)
+        cout << "At dest: " << destNode << " NumHops=" << numHops << " PrevNode:"<<get<2>(newJourney)<<" DepTm:"<<get<3>(newJourney)
+                <<" ArrTm:"<<get<0>(newJourney)<<" WtTime:"<<get<1>(newJourney)<<endl;
+    
+#endif
+
+    if (get<0>(vecFullList[destNode]).empty())
+        toExpandList.push_back(destNode);
+    pair<set <tuple<int, int, int>>::iterator, bool> newJourenysInsertRet = get<0>(vecFullList[destNode]).insert(newJourneySansPrevWHops);
+    set<tuple<int, int, int>>::iterator itNextNewJourney = get<0>(newJourenysInsertRet);
+    ++itNextNewJourney;
+    tuple<int, int, int> nextNewJourney;
+    bDominates = true;
+    if (get<1>(newJourenysInsertRet))
+    {
+        while ((itNextNewJourney != get<0>(vecFullList[destNode]).end()) && bDominates)
+        {
+            nextNewJourney = *itNextNewJourney;
+            if (checkDominance(newJourneySansPrev, make_tuple(get<0>(nextNewJourney), get<1>(nextNewJourney)) ))
+                itNextNewJourney = get<0>(vecFullList[destNode]).erase(itNextNewJourney);
+            else
+                bDominates = false;
+        }
+    }
+}
+
+bool Graph::checkDominance(tuple<int, int> journey1,  tuple<int, int> journey2)
+{
+    int tA = get<0>(journey1), wA = get<1>(journey1), tB = get<0>(journey2), wB = get<1>(journey2);
+    return (tB-tA+wA <= wB);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//----------------------------
 void Graph::build_shortestJourneys(int source, vector<std::pair<int, int>>& shortestJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys)
 {
     shortestJourneys.resize(V);                     //Shortest Journeys for all nodes needs to be found.
@@ -1167,12 +1983,17 @@ void Graph::print_shortest_paths(int source)
 void Graph::print_shortest_results_test(int source)
 {
     ofstream shortestOut(shortestResults);
-    int maxHopCount = 0; int vertWHops = 1; int sumHops = 0; int avgHops;
+    int maxHopCount = 0; int vertWHops = 1; int sumHops = 0; int avgHops; int arrivalTime; int numHops;
     shortestOut << V << "\n";
     for (int i = 0; i < V; i++)
     {
         if ( (i == source) || (shortestJourneys[i].rPath.size() > 0) )
-            shortestOut <<  i << "  " << shortestJourneys[i].rPath.size() <<  "\n";
+        {
+            numHops = (int)shortestJourneys[i].rPath.size()-1;
+            arrivalTime = get<0>(shortestJourneys[i].sigmaSchedule[0]);
+            shortestOut <<  i << "  " << arrivalTime << " " << shortestJourneys[i].rPath.size() <<  "\n";
+            
+        }
         else
             continue;
         sumHops += (int)shortestJourneys[i].rPath.size();
