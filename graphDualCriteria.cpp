@@ -458,7 +458,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
         finalMWFJourneys[i].prevNode=-1;
     }
 
-    compareIntvlsMWF intvlCompareObj;
+    compareIntvlsMWFMinHeap intvlCompareObjForHeap;
     newJourney.arrivalTime = t_start;
     newJourney.prevNode = -1; newJourney.wtTime=0;
     newJourney.expandedAt.resize(vertices[source].numNbrs);
@@ -492,7 +492,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
             adHocIntvl.u = source; adHocIntvl.nbrIndexFor_v=i; adHocIntvl.v = vertices[source].neighbors[i].nbrId;
             adHocIntvl.prevJourneyIndex = (int)listJourneys[source].size()-1;
             listOfAdHocIntvls.push_back(adHocIntvl);
-            std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObj);
+            std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap);
         }
     }
     newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
@@ -508,7 +508,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 indexPreKnownIntvls++;
             else                       //remove min of AdHoc Interval.
             {
-                std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObj); listOfAdHocIntvls.pop_back();
+                std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap); listOfAdHocIntvls.pop_back();
             }
             u = newIntvl.u; v=newIntvl.v; nbrIndex=newIntvl.nbrIndexFor_v; intvlId=newIntvl.intvlId;
             if (newIntvl.intvlId != -1)
@@ -531,7 +531,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
             }
             if (prevJourneyIndex == -1)
             {
-                newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
+                newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
                 continue;
             }
             int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex]);
@@ -550,8 +550,10 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 if (!listJourneys[v].empty())
                 {
                     tuple<int,int> j1; tuple<int,int> j2;
-                    get<0>(j1) = listJourneys[v][listJourneys[v].size()-1].arrivalTime; get<1>(j1) = listJourneys[v][listJourneys[v].size()-1].wtTime;
-                    get<0>(j2) = newJourney.arrivalTime; get<1>(j1) = newJourney.wtTime;
+                    get<0>(j1) = listJourneys[v][listJourneys[v].size()-1].arrivalTime;
+                    get<1>(j1) = listJourneys[v][listJourneys[v].size()-1].wtTime;
+                    get<0>(j2) = newJourney.arrivalTime;
+                    get<1>(j2) = newJourney.wtTime;
                     if (!checkDominance(j1, j2))
                         listJourneys[v].push_back(newJourney);
                     else        //The new journey from this interval is dominated so ignore it.
@@ -580,7 +582,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                         continue;
                     if (vertices[v].neighbors[i].edgeSchedules[nextIntvl].intvlStart >= newJourney.arrivalTime)
                     {
-                        vertices[v].neighbors[i].edgeSchedules[nextIntvl].prevJourneyIndex=(int)listJourneys[v].size()-1;
+                        vertices[v].neighbors[i].edgeSchedules[nextIntvl].prevJourneyIndex= (int)listJourneys[v].size()-1;
                     }
                     else if ( (vertices[v].neighbors[i].edgeSchedules[nextIntvl].intvlStart < nextTravelTime)
                              && (nextTravelTime <= vertices[v].neighbors[i].edgeSchedules[nextIntvl].intvlEnd) )
@@ -591,7 +593,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                         adHocIntvl.lambda= vertices[v].neighbors[i].edgeSchedules[nextIntvl].traveTime;
                         adHocIntvl.u = v; adHocIntvl.nbrIndexFor_v=i; adHocIntvl.v = vertices[v].neighbors[i].nbrId;
                         adHocIntvl.prevJourneyIndex = (int)listJourneys[v].size()-1;
-                        listOfAdHocIntvls.push_back(adHocIntvl); std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObj);
+                        listOfAdHocIntvls.push_back(adHocIntvl); std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap);
                     }
                 }
             }

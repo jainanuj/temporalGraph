@@ -80,6 +80,19 @@ public:
     }
 };
 
+class compareIntvlsMWFMinHeap {      //sort by t.
+public:
+    bool operator () (intervalInfo intvl1, intervalInfo intvl2)
+    {
+        int arrIntvl1=intvl1.intvlStart+intvl1.lambda;
+        int arrIntvl2=intvl2.intvlStart+intvl2.lambda;
+        if ( arrIntvl1 != arrIntvl2)
+            return (arrIntvl1 > arrIntvl2);
+        else
+            return (intvl1.intvlStart > intvl2.intvlStart);
+    }
+};
+
 
 
 #endif /* graphDualCriteria_hpp */
