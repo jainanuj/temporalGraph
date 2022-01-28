@@ -21,9 +21,9 @@
 #define JOURCHECK 1000000
 
 
-#define sourceId 1
+#define sourceId 0
 
-Graph::Graph(const char* filePath, int contactSeq = 0)      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
+Graph::Graph(const char* filePath, int contactSeq = 0, const char * option="any")      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
 {
     FILE* file;
     int x;

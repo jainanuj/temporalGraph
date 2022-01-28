@@ -78,10 +78,10 @@ int main(int argc, const char * argv[]) {
     if (argc > 3)
         contactSeq = 1;
     Graph *g;
-    if(/*!strcmp(option,"mwf") ||*/ (!strcmp(option,"mhf")) )
-        g = new GraphDualCriteria(argv[2], contactSeq);
+    if(!strcmp(option,"mwf") || (!strcmp(option,"mhf")) )
+        g = new GraphDualCriteria(argv[2], contactSeq, option);
     else
-        g = new Graph(argv[2], contactSeq);
+        g = new Graph(argv[2], contactSeq, option);
     g->initial_query();
 
     t.stop();

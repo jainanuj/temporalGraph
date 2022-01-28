@@ -24,6 +24,7 @@ struct Interval
     int intvlEnd;
     int adjustedEnd;
     int traveTime;
+    int prevJourneyIndex;
 public:
     int isValidFor(int t)
     {
@@ -109,7 +110,7 @@ class Graph
 {
 public:
     Graph() {}
-    Graph(const char* filePath, int contactSeq); // input file
+    Graph(const char* filePath, int contactSeq, const char * option); // input file
     void initial_query(const char* filePath); // query file
     void initial_query();
     void initial_ds_ea();
@@ -118,7 +119,7 @@ public:
     void initial_ds_s();
     void run_earliest_arrival();
     void run_shortest();
-    void run_mwf();
+    virtual void run_mwf();
     void earliest_arrival(int source);
     tuple<int,int> earliest_arrival_pair(int source,int retRchd=0);
     void earliest_arrival_fibo(int source);
