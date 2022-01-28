@@ -468,6 +468,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     bit_queue closedNodes((int)vertices.size());
     closedNodes.queue_add_bit(source);
     numNodesRchd++;
+    cout << "Total num Intvls: " << listOfPreKnownIntvls.size() << endl;
     
     t.start();
     for (int i=0; i< vertices[source].numNbrs;i++)
@@ -500,6 +501,8 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < listOfPreKnownIntvls.size()))
            && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1) )
     {
+        if (indexPreKnownIntvls % 1000 == 0)
+            cout << "Intervals processed: " << indexPreKnownIntvls << "Num nodes reached: " << numNodesRchd << endl;
         int currArrivalTime = newIntvl.intvlStart+newIntvl.lambda;
         int numNewNodesRchd=0;
         while ((currArrivalTime == newIntvl.intvlStart+newIntvl.lambda) && (newIntvlFrom != -1))
@@ -508,6 +511,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 indexPreKnownIntvls++;
             else                       //remove min of AdHoc Interval.
             {
+                cout << "Intvl is to be used from Ad Hoc list" << endl;
                 std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap); listOfAdHocIntvls.pop_back();
             }
             u = newIntvl.u; v=newIntvl.v; nbrIndex=newIntvl.nbrIndexFor_v; intvlId=newIntvl.intvlId;
