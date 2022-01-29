@@ -501,7 +501,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < listOfPreKnownIntvls.size()))
            && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1) )
     {
-        if (indexPreKnownIntvls % 10 == 0)
+        if (indexPreKnownIntvls % 1000 == 0)
             cout << "Intervals processed: " << indexPreKnownIntvls << "Num nodes reached: " << numNodesRchd << endl;
         int currArrivalTime = newIntvl.intvlStart+newIntvl.lambda;
         int numNewNodesRchd=0;
@@ -516,7 +516,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
             }
             else
                 break;
-            if (indexPreKnownIntvls % 10 == 0)
+            if (indexPreKnownIntvls % 1000 == 0)
                 cout << "Intervals processed: " << indexPreKnownIntvls << "Num nodes reached: " << numNodesRchd << endl;
             u = newIntvl.u; v=newIntvl.v; nbrIndex=newIntvl.nbrIndexFor_v; intvlId=newIntvl.intvlId;
             if (newIntvl.intvlId != -1)
@@ -563,7 +563,12 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                     get<0>(j2) = newJourney.arrivalTime;
                     get<1>(j2) = newJourney.wtTime;
                     if (!checkDominance(j1, j2))
-                        listJourneys[v].push_back(newJourney);
+                    {
+                        if (get<0>(j1) < get<0>(j2))
+                            listJourneys[v].push_back(newJourney);
+                        else
+                            listJourneys[v][listJourneys[v].size()-1] = newJourney; //Replace last journey as arrTm is same and wt time more.
+                    }
                     else        //The new journey from this interval is dominated so ignore it.
                     {
                         newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
@@ -710,7 +715,7 @@ int GraphDualCriteria::searchPrevJourney(int node, int beforeTime)  //Returns in
         {
             if ((high - low) > 1)
             {
-                high = mid+1;        //mid can be safely excluded cuz it doesn't satisfy transmission after t.
+                high = mid-1;        //mid can be safely excluded cuz it doesn't satisfy transmission after t.
                 mid = (low + high)/2;
             }
             else        //High and low are adjacent or same. mid is too late, so only possiblity is low.
