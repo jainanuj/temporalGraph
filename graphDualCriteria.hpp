@@ -26,7 +26,7 @@ struct mwfJourney {
     int arrivalTime;
     int wtTime;
     int prevNode;
-    vector<tuple<int, int>> expandedAt;     //(strt,lambda) of intvl in which this journey was expanded on each nbr.
+    vector<tuple<int, int, int>> expandedAt;     //(intvl.startTime,lambda) of intvl in which this journey was expanded on each nbr. Last element is flag whether it was expanded or not.
 };
 
 class GraphDualCriteria  : public Graph
@@ -46,7 +46,7 @@ public:
     void printmwfResultsTest2(int source);
     int getMinIntvl(intervalInfo &newIntvl, int indexPreKnownIntvls);
     int searchPrevJourney(int node, int beforeTime);
-    void setupNewJourney(int v, mwfJourney newJourney);
+    void setupNewJourney(int v, int arrivalTime);
 public:
     vector <pair<int,int>> arr_hop_time, f_time;
 
