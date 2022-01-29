@@ -136,7 +136,7 @@ public:
 
     
     void minWaitForemostPrioritized(int source);
-    void extendPrioritizedJourney(tuple<int,int, int,int> inJourney, int node);
+    void extendPrioritizedJourney(tuple<int,int, int,int> inJourney, int node, int source);
     bool checkDominatedAndInsertPrioritized(int destNode,tuple<int, int, int, int, int, bool> newJourney);
     void insertPrioritizedInJourneySets(int destNode, tuple<int,int,int,int, int,bool> newJourney, set <tuple<int, int, int,int, int, bool>, compareMFSetElementsPrioritized >::iterator itInsertPos);
     

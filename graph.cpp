@@ -1568,7 +1568,7 @@ void Graph::minWaitForemostPrioritized(int source)
             closedNodes.queue_add_bit(nodeID);
             numNodesFinalized++;
         }      //Num finalized journeys should be checked imm. after this, so unnecessary are not expanded. should use do-while TBD.
-        extendPrioritizedJourney(exploreJourney, nodeID);
+        extendPrioritizedJourney(exploreJourney, nodeID, source);
 /**
  for each neighbor v of u
  {       generate necessary expansions (v,a',w') from u to v;
@@ -1640,7 +1640,7 @@ void Graph::printMWFWalksPrioritized(int source)
 }
 
 
-void Graph::extendPrioritizedJourney(tuple<int,int, int,int> inJourney, int node)
+void Graph::extendPrioritizedJourney(tuple<int,int, int,int> inJourney, int node, int source)
 {
     int nbr, intvlID, departTime, newArrivTime, newWaitTime, numHops;
     bool isDominated;
@@ -1652,7 +1652,10 @@ void Graph::extendPrioritizedJourney(tuple<int,int, int,int> inJourney, int node
             continue;
 //        do {      // UNCOMMENT
             newArrivTime = departTime + vertices[node].neighbors[j].edgeSchedules[intvlID].traveTime;
-            newWaitTime = departTime-get<0>(inJourney)+get<1>(inJourney);   //get<0> is arrival time at node and get<1> is wait time till node.
+            if ((node == source) && (get<0>(inJourney)==t_start))  //this is nbr of source & start of the journey
+                newWaitTime = 0;
+            else
+                newWaitTime = departTime-get<0>(inJourney)+get<1>(inJourney);   //get<0> is arrival time at node and get<1> is wait time till node.
             numHops = get<2>(inJourney)+1;
             isDominated = checkDominatedAndInsertPrioritized(nbr,make_tuple(newArrivTime,newWaitTime, node, departTime, numHops,false));     //Check if this is dominated by the journeys already present at nbr.
 //            if (!isDominated)
