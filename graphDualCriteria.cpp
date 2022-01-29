@@ -458,7 +458,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     }
     compareIntvlsMWFMinHeap intvlCompareObjForHeap;
     newJourney.arrivalTime = t_start;
-    newJourney.prevNode = -1; newJourney.wtTime=0;
+    newJourney.prevNode = -1; newJourney.wtTime=0;newJourney.prevJourneyIndex=-1;
     newJourney.expandedAt.resize(vertices[source].numNbrs);
     listJourneys[source].push_back(newJourney);        //known journeys so far at source.
     finalMWFJourneys[source] = newJourney;
@@ -469,7 +469,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     cout << "Total num Intvls: " << listOfPreKnownIntvls.size() << endl;
     
     t.start();
-    //setupNewJourney(source, newJourney.arrivalTime);      //Commented as may not be reqd for csg graphs. TBD
+    setupNewJourney(source, newJourney.arrivalTime);      //Commented as may not be reqd for csg graphs. TBD
     newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
     int u=0,v=0,nbrIndex=0,intvlId=0;
     while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < listOfPreKnownIntvls.size()))
@@ -525,7 +525,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                     newJourney.wtTime = 0;
                 else
                     newJourney.wtTime = listJourneys[u][prevJourneyIndex].wtTime + newIntvl.intvlStart-listJourneys[u][prevJourneyIndex].arrivalTime;
-                newJourney.prevNode=u;
+                newJourney.prevNode=u;newJourney.prevJourneyIndex=prevJourneyIndex;newJourney.prevDepTime=newIntvl.intvlStart;
                 listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
 
                 newJourney.expandedAt.clear();
@@ -561,7 +561,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                     (finalMWFJourneys[v].wtTime > newJourney.wtTime))
                     finalMWFJourneys[v] = newJourney;
                 
-                //setupNewJourney(v, newJourney.arrivalTime);
+                setupNewJourney(v, newJourney.arrivalTime);
             }
             newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
         }
@@ -611,7 +611,19 @@ void GraphDualCriteria::printmwfResultsTest2(int source)
 //            continue;
         cout << i << " " << finalMWFJourneys[i].arrivalTime << "  "  <<  finalMWFJourneys[i].wtTime <<"\n";
         if (finalMWFJourneys[i].arrivalTime < infinity)
+        {
             rv++;
+            mwfJourney currJourney=finalMWFJourneys[i];
+            cout << "("<< i <<"," <<finalMWFJourneys[i].arrivalTime << "," <<finalMWFJourneys[i].wtTime<< ")<--";
+            while (currJourney.prevNode != -1)
+            {
+                int prevNode = currJourney.prevNode, depTime = currJourney.prevDepTime;
+                int prevIndex=currJourney.prevJourneyIndex;
+                currJourney = listJourneys[prevNode].at(prevIndex);
+                cout << depTime<< "("<< prevNode << "," << currJourney.arrivalTime <<"," << currJourney.wtTime << ")<--";
+            }
+            cout << source << endl;
+        }
     }
     cout << "Source: " << source << "\n";
     cout << "Num reachable vertices: " << rv << "\n";
