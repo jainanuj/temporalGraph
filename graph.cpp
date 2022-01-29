@@ -988,6 +988,7 @@ void Graph::run_mwf()
     
     for(int i = 0 ;i < sources.size() ;i ++)
     {
+        cout << "prioritized mwf called"<<endl;
         initial_ds_ea();
         //earliest_arrival(sources[i]);
         //initial_ds_ea();earliest_arrival_pair(sources[i]);
