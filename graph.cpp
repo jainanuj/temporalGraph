@@ -995,8 +995,8 @@ void Graph::run_mwf()
         //initial_ds_ea();
 //        shortest_path(sources[i]);
         //minWaitForemost(sources[i]);
- //       minWaitForemostPrioritized(sources[i]);
-        minWaitForemostPrioritizedNoSet(sources[i]);
+        minWaitForemostPrioritized(sources[i]);
+ //       minWaitForemostPrioritizedNoSet(sources[i]);
     }
     
     print_avg_time();
@@ -1604,18 +1604,18 @@ void Graph::printMWFWalksPrioritized(int source)
             continue;
         numRchableVerts++;
         itMWFJourney = vecFullListPriority[currNode].begin();
-//        cout << "Walk: "<< currNode << " ";// << "("<< get<0>(*itMWFJourney) <<","<<get<1>(*itMWFJourney)<<")";//\n";
+        cout << "Walk: "<< currNode << " ";// << "("<< get<0>(*itMWFJourney) <<","<<get<1>(*itMWFJourney)<<")";//\n";
         arrTime = get<0>(*itMWFJourney); waitTime = get<1>(*itMWFJourney);
         //cout << arrTime*100+waitTime << "\n";
         prevNode = get<2>(*itMWFJourney); departTime = get<3>(*itMWFJourney);
-//        cout << "("<< arrTime <<","<<waitTime<<")";
-//        cout << "<--"  << "(" << departTime <<")"<< prevNode;
+        //cout << "("<< arrTime <<","<<waitTime<<")";
+        //cout << "<--"  << "(" << departTime <<")"<< prevNode;
         
-        cout <<  i << " " << arrTime << " " << waitTime << " " << endl;
-/*        while (!((prevNode == source) && (currNode == source)))
+        //cout <<  i << " " << arrTime << " " << waitTime << " " << endl;
+        while (!((prevNode == source) && (currNode == source)))
         {
-            //cout << "("<< arrTime <<","<<waitTime<<")";
-            //cout << "<--"  << "(" << departTime <<")"<< prevNode;
+            cout << "("<< arrTime <<","<<waitTime<<")";
+            cout << "<--"  << "(" << departTime <<")"<< prevNode;
             currNode=prevNode;
             itMWFJourney = vecFullListPriority[currNode].lower_bound(make_tuple(departTime,0,0,0,0,false));
             if (itMWFJourney == vecFullListPriority[prevNode].end())
@@ -1632,9 +1632,9 @@ void Graph::printMWFWalksPrioritized(int source)
                 cout << "Something went wrong\n\n";
                 break;
             }
-        }*/
-//        cout << "("<< arrTime <<","<<waitTime<<")";
-//        cout << "<--"  << "(" << departTime << ")" << prevNode << "\n\n";
+        }
+        cout << "("<< arrTime <<","<<waitTime<<")";
+        cout << "<--"  << "(" << departTime << ")" << prevNode << "\n\n";
     }
     cout << "Num Reachable: " << numRchableVerts << endl;
 }
