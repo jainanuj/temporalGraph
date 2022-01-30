@@ -493,6 +493,14 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
 //            if (indexPreKnownIntvls % 1000 == 0)
 //                cout << "Intervals processed: " << indexPreKnownIntvls << "Num nodes reached: " << numNodesRchd << endl;
             u = newIntvl.u; v=newIntvl.v; nbrIndex=newIntvl.nbrIndexFor_v; intvlId=newIntvl.intvlId;
+            if (v == source)        //no point going back to source. move on to next intvl.
+            {
+//                int numJourneysAtu = (int)listJourneys[u].size();
+//                cout << "Need to examine this. Num journeys at u: " << numJourneysAtu << endl;
+                newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
+                continue;
+
+            }
             if (newIntvl.intvlId != -1)
             {
                 prevJourneyIndex = vertices[u].neighbors[nbrIndex].edgeSchedules[intvlId].prevJourneyIndex;
@@ -521,7 +529,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
             if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (whehterExpanded == 0))
             {
                 newJourney.arrivalTime = newIntvl.intvlStart+newIntvl.lambda;
-                if ((u== source) && (listJourneys[u][prevJourneyIndex].arrivalTime == t_start))
+                if (u== source)// && (listJourneys[u][prevJourneyIndex].arrivalTime == t_start))
                     newJourney.wtTime = 0;
                 else
                     newJourney.wtTime = listJourneys[u][prevJourneyIndex].wtTime + newIntvl.intvlStart-listJourneys[u][prevJourneyIndex].arrivalTime;
