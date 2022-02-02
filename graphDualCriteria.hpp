@@ -49,6 +49,7 @@ public:
     int getMinIntvl(intervalInfo &newIntvl, int indexPreKnownIntvls);
     int searchPrevJourney(int node, int beforeTime);
     void setupNewJourney(int v, int arrivalTime);
+    int getPrevJourney(intervalInfo& intvl);
 public:
     vector <pair<int,int>> arr_hop_time, f_time;
 

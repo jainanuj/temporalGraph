@@ -363,76 +363,91 @@ void GraphDualCriteria::printmhfResultsTest2(int source, vector<std::tuple<int, 
 
 
 /*************************
- Represent each interval as {u,v,u_nbrIndx,(s,e),lambda,prevJourneyIndex} in a list Intvls[]        //u_nbrIndx represents index of v in nbrs list of u.
- journey is represented as (a,w,prevNode,lastExpAt) where lastExpAt is (s,lambda) indexed by nbr or NULL.
- Sort Intvls[] in order of s+lambda
- The whole graph is also stored in verts[]. For each node, list of nbrs. And for each nbr, list of intervals.
- PQ mergeIntvls = {}            //PQ with arrival time (s+lambda) as the key. When there is a tie, s is the key.
- listJ[u] is a set sorted list (by arrival time) of journeys arrived at node u
- for each u { openIntvl[u] = null; listJ[u] = {} }
- listJ[s][0]={t_start,0}
- newJourney = listJ[s].last();
- for each nbr w of s
-     nextIntvl = nextFn(s,w,t_start)
-     If (nextIntvl.s >= newJourney.a)
-         vert[v][w][nextIntvl].prevJourneyIndex = listJ[s].last();     //Can be stored as Id in listJ[v]
-     else If (listJ[v].lastJ.arr > nextIntvl.s and < nextIntvl.e)
-         e = nextIntvl.e;
-         newIntvlCreated=(s,w,listJ[u].end().arr,e,nextIntvl.lambda);
-         newIntvlCreated.prevJourney=listJ[s].last();
-         Insert(mergeIntvls, {newIntvlCreated})
+ Data structures used:
+ 1. Graph data structure for intvl temporal graphs (vector of nodes. Each Node has vector of nbrs. Each nbr has vector of intvls. ( Same as we used earlier.)
+ 2. Interval as {u,v,u_nbrIndx,(s,e),lambda, intvlId, prevJourneyIndex}. //u_nbrIndx represents index of v in nbrs list of u in graph of (1). IntvlId represents index of interval on the edge (u,v) as represented in (1) above.
+ 3. Sorted list listIntervals[] of all intervals present in the input graph. Sort key is (interval.s + lambda). For contact sequence graph, this is similar to sorted list of edges with sort key as arrival time of the edge.
+ 4. Journey is represented as (a,w,prevNode,lastExpAt)
+ 5. lastExpAt used in (4) is a vector with num elements equal to num neighbors of destination of the journey. For each neihbor, it stores info (startTime, lambda) about interval in which this journey was last expanded to this nbr.
+ 6. listJourneys is a vector of (list of journeys) for each node u. listJourneys[u] is a sorted list (by arrival time) of journeys arrived at node u
+ 7. PQ mergeIntvls = {}            //Priority Queue of new Intervals created during Algorithm with arrival time (s+lambda) as the key.
+
+mwfWalks(source)
+{
+ for each u { listJ[u] = {} }
+ newJourney = {t_start,0,-1,{(-1,-1)} }       //(arrival time, wait time, prevNode, expandedAt is a vector with (-1,-1) for each nbr of source as this journey is not expanded yet to any nbr.
+ listJ[source].push_back(newJourney)
+ setupNewJourneyForNeighbors(source,newJourney.arrivalTime);
  numNodesRchd = 1;      //source has been rchd.
- newIntvl = min (top(Intvls, mergeIntvls));     //Comparison of arrTime= s+lambda and secondary start time.
- while ( (Intvls[] || mergeIntvls[]) && (numNodesRchd < reachable) )
+ newIntvl = min (top(Intvls, mergeIntvls));     //Comparison of arrTime= s+lambda and secondary start time
+ while ( (listIntervals[] || mergeIntvls[]) && (numNodesRchd < reachable) )
  {
     currArrivalTime = newIntvl.arrTime
     numNewNodesRchd=0;
+ 
+ //Keep processing intervals without checking numNodes reached until the intervals have same arrival time. This is because even though all nodes may have been reached, there may still be journey coming in with same arrival time but less wait time.
     while (newIntvl != NULL && currArrialTime == newIntvl.arrTime)
     {
-        newIntvl=removeMin(top(Intvls,mergeIntvls)
-        If (newIntvl.Id != -1)      //this means this intvl came from static set of intvls.
-            prevJourneyIndex=vert[u][v][newIntvl.Id].prevJourneyIndex;
-        else        //This means this intvl came from mergeIntvls list and was created by breaking up existing interval.
-            prevJourneyIndex=newIntvl.prevJourneyIndex
-        if (prevJuorneyIndex==-1)
-        {
-            If (listJ[u].last().arr <= newIntvl.strt)
-                prevJourneyIndex=listJ[u].last()
-            else
-                search prevJourney in listJ[u] (journey with arrTm <= newIntvl.strtTime)
-        }
-        If no previousJourneyFound
+        removeMin(top(listIntervals,mergeIntvls)
+        u=newIntvl.u; v=newIntvl.v;
+        prevJourneyIndex = getPreviousJourney(newIntvl)
+        If (prevJourneyIndex==-1)
+            newIntvl = min (top(Intvls, mergeIntvls));     //Comparison of arrTime= s+lambda and secondary start time
             continue;
-        If (listJ[u][prevJourneyIndex].expandedIntvl[v].lambda <  newIntvl.lambda or listJ[u][prevJourneyIndex].expandedIntvl[v] == null)       //Based on intvl dominance criteria. (lambda > lastLambda )
+        If (listJ[u][prevJourneyIndex].expandedIntvl[v].lambda <  newIntvl.lambda or listJ[u][prevJourneyIndex].expandedIntvl[v] == {-1,-1})  //Based on intvl dominance criteria. Need to expand only when(lambda > lastLambda )
         {
-            newJourney.a=newIntvl.s+newIntvl.lambda;            //This will be extension of the journey at prevJourneyIndex
-            newJourney.w=listJ[u][prevJourneyIndex].w+newIntvl.s-listJ[u][prevJourneyIndex].arr;      //This will be extension of the journey at prevJourneyIndex
+            newJourney.arrTime=newIntvl.s+newIntvl.lambda;            //This will be extension of the journey at prevJourneyIndex
+            newJourney.wtTime=listJ[u][prevJourneyIndex].w+ newIntvl.s-listJ[u][prevJourneyIndex].arr;      //This will be extension of the journey at prevJourneyIndex
             listJ[u][prevJourneyIndex].expandedIntvl[v] = {newIntvl.s,newIntvl.lambda};
-            If (newJourney not dominated by listJ[v].last() || listJ[v] == null)     //Dominance based on mwf criteria.
+            If (newJourney not dominated by listJ[v][listJ[v].last()] || listJ[v] == null)     //Dominance based on mwf criteria.
+            {
                 If (mwf[v] == NULL)
                     mwf[v]=newJourney;
                     numNewNodesRchd++;
-                else if ((newJourney.arrTm,newJourney.wtTime) < (mwf[v].arrTm,mwf[v].wtTime))
+                else if ((newJourney.arrTime == mwf[v].arrTime) && (newJourney.wtTime < mwf[v].wtTime) )
                     mwf[v]=newJourney;
-                listJ[v].append(newJourney);
-                for each nbr w of v
-                    nextIntvl = nextFn(v,w,newJourney.arr)        //This operates on static input intvl temporal graph
-                    If ( newJourney.a <= nextIntvl.s)
-                        vert[v][w][nextIntvl].prevJourneyIndex = listJ[v].last();     //Can be stored as Id in listJ[v]
-                        newJourney.nexFnInt[w]=nextIntvl
-                    else If (newJourney.arr > nextIntvl.s and < nextIntvl.e)
-                        e = nextIntvl.e;
-                        newIntvlCreated=(v,w,v_nbrIndexFor_w,newJourney.arr,e,nextIntvl.lambda);        //Sub-interval of the static intvl created as all journeys exit at start of an interval.
-                        newIntvlCreated.prevJourneyIndex= listJ[v].last();
-                        Insert(mergeIntvls, {newIntvlCreated})
-        }
-        else
-            ignore intvl for expansion.
-        newIntvl = min (top(Intvls, mergeIntvls));     //Comparison of arrTime= s+lambda and secondary start time.
+                
+                if ((newJourney.arrTime == listJ[v][listJ[v].last].arrTime) && (newJourney.wtTime < listJ[v][listJ[v].last].wtTime) )
+                    listJ[v][listJ[v].last()] = newJourney;         //Overwrite last journey in the list with newJourney as newJourney has same arr Time but less wait time.
+                else
+                    listJ[v].append(newJourney);
+                setupNewJourneyForNeighbors(v, arrivalTime)
+            }
+        }       //else intvl is ignored for expansion.
+        newIntvl = min (top(Intvls, mergeIntvls));     //fetch next intvl for consideration. (it is not removed yet).
     }
     numNodesRchd+= numNewNodesRchd;
  }
- 
+}
+
+getPreviousJourney(interval newIntvl)
+{
+    If (newIntvl.Id != -1)      //this means this intvl came from static list of listIntervals.
+        prevJourneyIndex=vert[u][v][newIntvl.Id].prevJourneyIndex;
+    else        //This means this intvl came from mergeIntvls list and was created by breaking up an existing interval.
+        prevJourneyIndex=newIntvl.prevJourneyIndex
+    if (prevJuorneyIndex==-1)
+    {
+        If (listJ[u].last().arr <= newIntvl.strt)
+            prevJourneyIndex=listJ[u].last()
+        else
+            search prevJourney in listJ[u] (search journey in sorted list listJ[u] with arrTm <= newIntvl.strtTime)     //This is binary search in list of sorted journeys by arrival time.
+    }
+ }
+
+ setupNewJourneyForNeighbors(int v, int arrivalTime)
+ {
+ for each nbr w of v
+     nextIntvl = nextFn(v,w,t_start)
+     If (nextIntvl.start >= arrivalTime)
+         vert[v][w][nextIntvl].prevJourneyIndex = listJ[v].last();     //Can be stored as Id in listJ[v]
+     else If ( (nextIntvl.start < arrivalTime) and (arrivalTime < nextIntvl.e) )
+         e = nextIntvl.e;
+         newIntvlCreated=(v,w,arrivalTime, e, nextIntvl.lambda);
+         newIntvlCreated.prevJourney=listJ[v].last();
+         mergeIntvls.insert({newIntvlCreated})
+ }
+
  ****************************/
 
 void GraphDualCriteria::mwfStreamingIntvls(int source)
@@ -501,6 +516,12 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 continue;
 
             }
+            else if (((u==0) && (v==1281)) || ((u==0) && (v==1282)) ||((u==1281) && (v==18)) || ((u==1282) && (v==18)) )
+            {
+                int numJourneysAtu = (int)listJourneys[u].size();
+                cout << "Need to examine this. Num journeys at u: " << numJourneysAtu << endl;
+            }
+//            prevJourneyIndex = getPrevJourney(newIntvl);
             if (newIntvl.intvlId != -1)
             {
                 prevJourneyIndex = vertices[u].neighbors[nbrIndex].edgeSchedules[intvlId].prevJourneyIndex;
@@ -525,11 +546,11 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 continue;
             }
             int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex]);
-            int whehterExpanded = get<2>(listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex]);
-            if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (whehterExpanded == 0))
+            int whetherExpanded = get<2>(listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex]);
+            if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (whetherExpanded == 0) || (u == source))  //Always expand from source as there is no waiting at source
             {
                 newJourney.arrivalTime = newIntvl.intvlStart+newIntvl.lambda;
-                if (u== source)// && (listJourneys[u][prevJourneyIndex].arrivalTime == t_start))
+                if (u== source) //Never any waiting at source.
                     newJourney.wtTime = 0;
                 else
                     newJourney.wtTime = listJourneys[u][prevJourneyIndex].wtTime + newIntvl.intvlStart-listJourneys[u][prevJourneyIndex].arrivalTime;
@@ -541,10 +562,8 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 if (!listJourneys[v].empty())
                 {
                     tuple<int,int> j1; tuple<int,int> j2;
-                    get<0>(j1) = listJourneys[v][listJourneys[v].size()-1].arrivalTime;
-                    get<1>(j1) = listJourneys[v][listJourneys[v].size()-1].wtTime;
-                    get<0>(j2) = newJourney.arrivalTime;
-                    get<1>(j2) = newJourney.wtTime;
+                    get<0>(j1) = listJourneys[v][listJourneys[v].size()-1].arrivalTime; get<1>(j1) = listJourneys[v][listJourneys[v].size()-1].wtTime;
+                    get<0>(j2) = newJourney.arrivalTime;get<1>(j2) = newJourney.wtTime;
                     if (!checkDominance(j1, j2))
                     {
                         if (get<0>(j1) < get<0>(j2))
@@ -578,6 +597,28 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     t.stop();
     time_sum += t.GetRuntime();
     printmwfResultsTest2(source);
+}
+
+int GraphDualCriteria::getPrevJourney(intervalInfo& intvl)
+{
+    int prevJourneyIndex = -1;
+    int u=intvl.u, nbrIndex=intvl.nbrIndexFor_v,intvlId=intvl.intvlId;
+    
+    if (intvlId != -1)
+    {
+        prevJourneyIndex = vertices[u].neighbors[nbrIndex].edgeSchedules[intvlId].prevJourneyIndex;
+    }
+    else
+        prevJourneyIndex = intvl.prevJourneyIndex;
+    
+    if ((prevJourneyIndex == -1) && (!listJourneys[u].empty()) )
+    {
+        if (listJourneys[u].at(listJourneys[u].size()-1).arrivalTime <= intvl.intvlStart)
+            prevJourneyIndex = (int)listJourneys[u].size()-1;
+        else
+            prevJourneyIndex = searchPrevJourney(u,intvl.intvlStart);
+    }
+    return prevJourneyIndex;
 }
 
 void GraphDualCriteria::setupNewJourney(int v, int arrivalTime)
