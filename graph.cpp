@@ -236,15 +236,15 @@ void Graph::buildXuanGraph(const char* filePath, vector<tuple<int, int, int, int
         }
         else
         {
-            if (currentRunningU != currentRunningV)
-            {
+//            if (currentRunningU != currentRunningV)
+//            {
                 fprintf(fileToWrite, "%d %d %d", currentRunningU, currentRunningV, intvlCount);     //Output format is u, v, intvlCount, (intervals). Intervals are of the form t, lambda.
                 for (int intC = 0; intC < intvlCount; intC++)
                     fprintf(fileToWrite, " %d %d", std::get<0>(currentIntvls[intC]), std::get<1>(currentIntvls[intC]) );
                 fprintf(fileToWrite, "\n");
-            }
-            else
-                numEdgesCollapsed++;        //Completely ignore this edge as start and end node are same so it's a loop.
+//            }
+//            else
+//                numEdgesCollapsed++;        //Completely ignore this edge as start and end node are same so it's a loop.
             currentIntvls.clear();      //Reset intvls for the new edge.
             intvlCount = 0;
             //Prepare to start looking at next edge.
@@ -254,15 +254,15 @@ void Graph::buildXuanGraph(const char* filePath, vector<tuple<int, int, int, int
         }
     }
     //now print out the consolidated last edge.
-    if (currentRunningU != currentRunningV)
-    {
+//    if (currentRunningU != currentRunningV)
+//    {
         fprintf(fileToWrite, "%d %d %d", currentRunningU, currentRunningV, intvlCount);
         for (int intC = 0; intC < intvlCount; intC++)
             fprintf(fileToWrite, " %d %d", std::get<0>(currentIntvls[intC]), std::get<1>(currentIntvls[intC]) );
         fprintf(fileToWrite, "\n");
-    }
-    else
-        numEdgesCollapsed++;        //Completely ignore this edge as start and end node are same so it's a loop.
+//    }
+//    else
+//        numEdgesCollapsed++;        //Completely ignore this edge as start and end node are same so it's a loop.
     fclose(fileToWrite);
     
     fileToWrite = fopen(intermediateFile, "r+b");
