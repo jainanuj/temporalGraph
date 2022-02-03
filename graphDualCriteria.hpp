@@ -50,6 +50,7 @@ public:
     int searchPrevJourney(int node, int beforeTime);
     void setupNewJourney(int v, int arrivalTime);
     int getPrevJourney(intervalInfo& intvl);
+    int checkNewJourneyAndInsert(mwfJourney& newJourney, int v);
 public:
     vector <pair<int,int>> arr_hop_time, f_time;
 
