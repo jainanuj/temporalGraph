@@ -470,6 +470,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
         finalMWFJourneys[i].arrivalTime = infinity;
         finalMWFJourneys[i].wtTime = infinity;
         finalMWFJourneys[i].prevNode=-1;
+        listJourneys[i].clear();
     }
     compareIntvlsMWFMinHeap intvlCompareObjForHeap;
     newJourney.arrivalTime = t_start;
@@ -488,7 +489,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
     int u=0,v=0,nbrIndex=0,intvlId=0;
     while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < listOfPreKnownIntvls.size()))
-           && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1) )
+           && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1) && (newIntvl.intvlStart+newIntvl.lambda <= maxFmstTime))
     {
         int currArrivalTime = newIntvl.intvlStart+newIntvl.lambda;
         int numNewNodesRchd=0;
