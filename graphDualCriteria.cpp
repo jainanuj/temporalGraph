@@ -390,7 +390,7 @@ void GraphDualCriteria::printmhfResultsTest2(int source, vector<std::tuple<int, 
 mwfWalks(source)
 {
  for each u { listJ[u] = {} }
- newJourney = {t_start,0,-1,{(-1,-1)} }       //(arrival time, wait time, prevNode, expandedAt is a vector with (-1,-1) for each nbr of source as this journey is not expanded yet to any nbr.
+ newJourney = {t_start,0,-1,{(-1,-1)} }       //(arrival time, wait time, prevNode, lastExpandedAt is a vector with (-1,-1) for each nbr of source as this journey is not expanded yet to any nbr.
  listJ[source].push_back(newJourney)
  setupNewJourneyForNeighbors(source,newJourney.arrivalTime);
  numNodesRchd = 1;      //source has been rchd.
@@ -481,12 +481,10 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     
     newJourney.arrivalTime = t_start;
     newJourney.prevNode = -1; newJourney.wtTime=0;newJourney.prevJourneyIndex=-1;
-    newJourney.expandedAt.resize(vertices[source].numNbrs);
+    newJourney.lastExpandedAt.resize(vertices[source].numNbrs);
     listJourneys[source].push_back(newJourney);        //known journeys so far at source.
     finalMWFJourneys[source] = newJourney;
     
-//    bit_queue closedNodes((int)vertices.size());
-//    closedNodes.queue_add_bit(source);
     numNodesRchd++;
     int totalStaticIntvls = (int)listOfPreKnownIntvls.size();
     cout << "Total num Intvls: " << totalStaticIntvls << endl;
@@ -514,7 +512,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
                 continue;
             }
-            int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex]);
+            int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex]);
             if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (u == source))  //Always expand from source as there is no waiting at source. TBD
             {
                 newJourney.arrivalTime = newIntvl.intvlStart+newIntvl.lambda;
@@ -524,9 +522,9 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                     newJourney.wtTime = listJourneys[u][prevJourneyIndex].wtTime + newIntvl.intvlStart-listJourneys[u][prevJourneyIndex].arrivalTime;
                 
                 newJourney.prevNode=u;newJourney.prevJourneyIndex=prevJourneyIndex;newJourney.prevDepTime=newIntvl.intvlStart;
-                listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
-                newJourney.expandedAt.clear();
-                newJourney.expandedAt.resize(vertices[v].numNbrs);
+                listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
+                newJourney.lastExpandedAt.clear();
+                newJourney.lastExpandedAt.resize(vertices[v].numNbrs);
                 int inserted = checkNewJourneyAndInsert(newJourney, v);
                 if (inserted == 0)      //This journey was dominated by previous journey at v.
                 {
@@ -536,7 +534,6 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
                 if (inserted == 2)
                 {
                     numNewNodesRchd++;
-//                    closedNodes.queue_add_bit(v);
                 }
 //                setupNewJourney(v, newJourney.arrivalTime);
             }
@@ -603,7 +600,7 @@ void GraphDualCriteria::setupNewJourney(int v, int arrivalTime)
     compareIntvlsMWFMinHeap intvlCompareObjForHeap;
     for (int i=0; i< vertices[v].numNbrs;i++)
     {
-        listJourneys[v][(int)listJourneys[v].size()-1].expandedAt[i] = make_tuple(-1,-1,0); //starting journey isnt expanded yet
+        listJourneys[v][(int)listJourneys[v].size()-1].lastExpandedAt[i] = make_tuple(-1,-1,0); //starting journey isnt expanded yet
         nextTravelTime = earliestUseEdgeAfterT(v, vertices[v].neighbors[i], arrivalTime, nextIntvl);
         if ((nextIntvl == -1) || (nextTravelTime >= infinity))
             continue;

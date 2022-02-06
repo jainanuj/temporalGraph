@@ -28,7 +28,7 @@ struct mwfJourney {
     int prevNode;
     int prevJourneyIndex;
     int prevDepTime;
-    vector<tuple<int, int, int>> expandedAt;     //(intvl.startTime,lambda) of intvl in which this journey was expanded on each nbr. Last element is flag whether it was expanded or not.
+    vector<tuple<int, int, int>> lastExpandedAt;     //(intvl.startTime,lambda) of intvl in which this journey was expanded on each nbr. Last element is flag whether it was expanded or not.
 };
 
 class GraphDualCriteria  : public Graph
