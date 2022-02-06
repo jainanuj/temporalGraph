@@ -160,6 +160,7 @@ bool GraphDualCriteria::lessCompArrHop(std::pair<int, int> newArrHop, std::pair<
 
 void GraphDualCriteria::initial_ds_eha()
 {
+    arr_hop_time.clear();
     arr_hop_time.resize(V);
     father.resize(V);
     for(int i=0; i<V; i++){
@@ -168,6 +169,19 @@ void GraphDualCriteria::initial_ds_eha()
     }
 
 }
+
+void GraphDualCriteria::initial_ds_ewa()
+{
+    finalMWFJourneys.resize(V);
+    for (int i=0; i< V; i++)
+    {
+        finalMWFJourneys[i].arrivalTime = infinity;
+        finalMWFJourneys[i].wtTime = infinity;
+        finalMWFJourneys[i].prevNode=-1;
+        listJourneys[i].clear();
+    }
+}
+
 
 void GraphDualCriteria::run_mhf()
 {
@@ -190,6 +204,7 @@ void GraphDualCriteria::run_mwf()
     for(int i = 0 ;i < sources.size() ;i ++)
     {
         initial_ds_ea();
+        initial_ds_ewa();
         //earliest_arrival(sources[i]);
         //initial_ds_ea();earliest_arrival_pair(sources[i]);
         //initial_ds_ea();
@@ -458,88 +473,74 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     int prevJourneyIndex = -1;
     Timer t;
 
-    int nextIntvl = 0, nextTravelTime = 0; int newIntvlFrom = 0;
+    int newIntvlFrom = 0;
     int numNodesRchd = 0;
-
     tuple<int,int> nodesRchable_maxFmstTime = earliest_arrival_pair(source,1); //4092652
     int nodesReachable= get<0>(nodesRchable_maxFmstTime), maxFmstTime=get<1>(nodesRchable_maxFmstTime);
     cout << "Num Nodes Reachable: " << nodesReachable << endl;
-    finalMWFJourneys.resize(V);
-    for (int i=0; i< V; i++)
-    {
-        finalMWFJourneys[i].arrivalTime = infinity;
-        finalMWFJourneys[i].wtTime = infinity;
-        finalMWFJourneys[i].prevNode=-1;
-        listJourneys[i].clear();
-    }
-    compareIntvlsMWFMinHeap intvlCompareObjForHeap;
+    
     newJourney.arrivalTime = t_start;
     newJourney.prevNode = -1; newJourney.wtTime=0;newJourney.prevJourneyIndex=-1;
     newJourney.expandedAt.resize(vertices[source].numNbrs);
     listJourneys[source].push_back(newJourney);        //known journeys so far at source.
     finalMWFJourneys[source] = newJourney;
     
-    bit_queue closedNodes((int)vertices.size());
-    closedNodes.queue_add_bit(source);
+//    bit_queue closedNodes((int)vertices.size());
+//    closedNodes.queue_add_bit(source);
     numNodesRchd++;
-    cout << "Total num Intvls: " << listOfPreKnownIntvls.size() << endl;
+    int totalStaticIntvls = (int)listOfPreKnownIntvls.size();
+    cout << "Total num Intvls: " << totalStaticIntvls << endl;
     
     t.start();
-    setupNewJourney(source, newJourney.arrivalTime);      //Commented as may not be reqd for csg graphs. TBD
-    newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
+//    setupNewJourney(source, newJourney.arrivalTime);      //Commented as may not be reqd for csg graphs. TBD
+    newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);
     int u=0,v=0,nbrIndex=0,intvlId=0;
-    while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < listOfPreKnownIntvls.size()))
-           && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1) && (newIntvl.intvlStart+newIntvl.lambda <= maxFmstTime))
+    while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < totalStaticIntvls))
+           && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1))// && (newIntvl.intvlStart+newIntvl.lambda <= maxFmstTime))
     {
         int currArrivalTime = newIntvl.intvlStart+newIntvl.lambda;
         int numNewNodesRchd=0;
         while ((currArrivalTime == newIntvl.intvlStart+newIntvl.lambda) && (newIntvlFrom != -1))
         {
-            if (newIntvlFrom == 0)      //Advance to next preKnownIntvl
-                indexPreKnownIntvls++;
-            else if (newIntvlFrom == 1)                      //remove min of AdHoc Interval.
-            {
-                cout << "Intvl is to be used from Ad Hoc list" << endl;
-                std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap); listOfAdHocIntvls.pop_back();
-            }
             u = newIntvl.u; v=newIntvl.v; nbrIndex=newIntvl.nbrIndexFor_v; intvlId=newIntvl.intvlId;
-            if (v == source)        //no point going back to source. move on to next intvl.
+            if (v == source)        //no point going back to source. move on to next intvl.     //TBD
             {
-                newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
+                newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
                 continue;
             }
             prevJourneyIndex = getPrevJourney(newIntvl);
             if (prevJourneyIndex == -1)
             {
-                newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
+                newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);  //Move to the next interval.
                 continue;
             }
             int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex]);
-            if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (u == source))  //Always expand from source as there is no waiting at source
+            if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (u == source))  //Always expand from source as there is no waiting at source. TBD
             {
                 newJourney.arrivalTime = newIntvl.intvlStart+newIntvl.lambda;
-                if (u== source) //Never any waiting at source.
+                if (u== source) //Never any waiting at source.      //TBD
                     newJourney.wtTime = 0;
                 else
                     newJourney.wtTime = listJourneys[u][prevJourneyIndex].wtTime + newIntvl.intvlStart-listJourneys[u][prevJourneyIndex].arrivalTime;
+                
                 newJourney.prevNode=u;newJourney.prevJourneyIndex=prevJourneyIndex;newJourney.prevDepTime=newIntvl.intvlStart;
                 listJourneys[u][prevJourneyIndex].expandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
                 newJourney.expandedAt.clear();
                 newJourney.expandedAt.resize(vertices[v].numNbrs);
                 int inserted = checkNewJourneyAndInsert(newJourney, v);
-                if (inserted == 0)
+                if (inserted == 0)      //This journey was dominated by previous journey at v.
                 {
-                    newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
+                    newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);
                     continue;
                 }
                 if (inserted == 2)
                 {
                     numNewNodesRchd++;
-                    closedNodes.queue_add_bit(v);
+//                    closedNodes.queue_add_bit(v);
                 }
 //                setupNewJourney(v, newJourney.arrivalTime);
             }
-            newIntvlFrom = getMinIntvl(newIntvl, indexPreKnownIntvls);
+            newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);
         }
         numNodesRchd += numNewNodesRchd;
     }
@@ -747,26 +748,30 @@ int GraphDualCriteria::searchPrevJourney(int node, int beforeTime)  //Returns in
     return retVal;
 }
 
-int GraphDualCriteria::getMinIntvl(intervalInfo &newIntvl, int indexPreKnownIntvls)
+int GraphDualCriteria::removeMinIntvl(intervalInfo &newIntvl, int& indexPreKnownIntvls)
 {
     int newIntvlFrom = 0;
     compareIntvlsMWF intvlCompareObj;
+    compareIntvlsMWFMinHeap intvlCompareObjForHeap;
+
     if ((indexPreKnownIntvls == listOfPreKnownIntvls.size()) && listOfAdHocIntvls.empty())
         return -1;
     
     if (listOfAdHocIntvls.empty())
     {
-        newIntvl = listOfPreKnownIntvls[indexPreKnownIntvls];
+        newIntvl = listOfPreKnownIntvls[indexPreKnownIntvls++];
         newIntvlFrom = 0;
     }
     else if (intvlCompareObj(listOfPreKnownIntvls[indexPreKnownIntvls], listOfAdHocIntvls.front()))
     {
-        newIntvl = listOfPreKnownIntvls[indexPreKnownIntvls];
+        newIntvl = listOfPreKnownIntvls[indexPreKnownIntvls++];
         newIntvlFrom = 0;
     }
     else
     {
         newIntvl = listOfAdHocIntvls.front();
+        cout << "Intvl is to be used from Ad Hoc list" << endl;
+        std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap); listOfAdHocIntvls.pop_back();
         newIntvlFrom = 1;
     }
     return newIntvlFrom;

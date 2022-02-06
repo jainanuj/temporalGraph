@@ -37,6 +37,7 @@ public:
     GraphDualCriteria(const char* filePath, int contactSeq, const char* option);
     bool lessCompArrHop(std::pair<int, int> newArrHop, std::pair<int,int> oldArrHop);
     void initial_ds_eha();
+    void initial_ds_ewa();
     int earliest_arrival_minHop_pair(int source);
     void run_mhf();
     void run_mwf();
@@ -46,7 +47,7 @@ public:
     void build_mhf_Journeys(int source, vector<std::tuple<int, int, int>>& mhfJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys);
     void printmhfResultsTest2(int source, vector<std::tuple<int, int, int>>& mhfJourney);
     void printmwfResultsTest2(int source);
-    int getMinIntvl(intervalInfo &newIntvl, int indexPreKnownIntvls);
+    int removeMinIntvl(intervalInfo &newIntvl, int& indexPreKnownIntvls);
     int searchPrevJourney(int node, int beforeTime);
     void setupNewJourney(int v, int arrivalTime);
     int getPrevJourney(intervalInfo& intvl);
