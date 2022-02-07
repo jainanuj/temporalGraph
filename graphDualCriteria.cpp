@@ -677,7 +677,7 @@ int GraphDualCriteria::searchPrevJourney(int node, int beforeTime)  //Returns in
     
     while (!journeyFound)
     {
-        cout << "Went into !journeyFound loop" << endl;
+        //cout << "Went into !journeyFound loop" << endl;
         if (nodeJourneys->at(mid).arrivalTime <= beforeTime)
         {
             if (beforeTime == nodeJourneys->at(mid).arrivalTime)     //t is within the intvl.
@@ -767,9 +767,13 @@ int GraphDualCriteria::removeMinIntvl(intervalInfo &newIntvl, int& indexPreKnown
     else
     {
         newIntvl = listOfAdHocIntvls.front();
-        cout << "Intvl is to be used from Ad Hoc list" << endl;
+        //cout << "Intvl is to be used from Ad Hoc list" << endl;
         std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap); listOfAdHocIntvls.pop_back();
         newIntvlFrom = 1;
+    }
+    if ((indexPreKnownIntvls % 10000000) == 0)
+    {
+        cout << "static intvls covered= " << indexPreKnownIntvls << ", Size of adHoc " << listOfAdHocIntvls.size() << endl;
     }
     return newIntvlFrom;
 }
