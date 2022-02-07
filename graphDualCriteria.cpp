@@ -45,6 +45,7 @@ GraphDualCriteria::GraphDualCriteria(const char* filePath, int contactSeq, const
         //Sort the vector w.r.t arrival time and start time.
         std::sort<vector<intervalInfo>::iterator, compareIntvlsMWF>(listOfPreKnownIntvls.begin(), listOfPreKnownIntvls.end(), intvlCompare);
         listJourneys.resize(V);
+        finalMWFJourneys.resize(V);
     }
 }
 
@@ -172,7 +173,6 @@ void GraphDualCriteria::initial_ds_eha()
 
 void GraphDualCriteria::initial_ds_ewa()
 {
-    finalMWFJourneys.resize(V);
     for (int i=0; i< V; i++)
     {
         finalMWFJourneys[i].arrivalTime = infinity;
@@ -771,9 +771,9 @@ int GraphDualCriteria::removeMinIntvl(intervalInfo &newIntvl, int& indexPreKnown
         std::pop_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap); listOfAdHocIntvls.pop_back();
         newIntvlFrom = 1;
     }
-    if ((indexPreKnownIntvls % 10000000) == 0)
+/*    if ((indexPreKnownIntvls % 10000000) == 0)
     {
         cout << "static intvls covered= " << indexPreKnownIntvls << ", Size of adHoc " << listOfAdHocIntvls.size() << endl;
-    }
+    }*/
     return newIntvlFrom;
 }

@@ -470,7 +470,7 @@ void Graph::initial_query(const char* filePath)
     while (getline(inputFile,inputLine))
     {
         sscanf(inputLine.c_str(), "%d",&s);
-        sources.push_back(s);
+        sources.push_back(s%V);
     }
 }
 
