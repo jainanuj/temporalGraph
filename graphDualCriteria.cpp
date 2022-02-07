@@ -201,7 +201,7 @@ void GraphDualCriteria::run_mwf()
 {
     time_sum=0;
     
-    for(int i = 0 ;i < sources.size() ;i ++)
+    for(int i = 0 ;i < sources.size() ; i++)
     {
         initial_ds_ea();
         initial_ds_ewa();
@@ -477,7 +477,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     int numNodesRchd = 0;
     tuple<int,int> nodesRchable_maxFmstTime = earliest_arrival_pair(source,1); //4092652
     int nodesReachable= get<0>(nodesRchable_maxFmstTime), maxFmstTime=get<1>(nodesRchable_maxFmstTime);
-    cout << "Num Nodes Reachable: " << nodesReachable << endl;
+//    cout << "Num Nodes Reachable: " << nodesReachable << endl;
     
     newJourney.arrivalTime = t_start;
     newJourney.prevNode = -1; newJourney.wtTime=0;newJourney.prevJourneyIndex=-1;
@@ -487,7 +487,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     
     numNodesRchd++;
     int totalStaticIntvls = (int)listOfPreKnownIntvls.size();
-    cout << "Total num Intvls: " << totalStaticIntvls << endl;
+//    cout << "Total num Intvls: " << totalStaticIntvls << endl;
     
     t.start();
 //    setupNewJourney(source, newJourney.arrivalTime);      //Commented as may not be reqd for csg graphs. TBD
@@ -543,7 +543,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     }
     t.stop();
     time_sum += t.GetRuntime();
-    printmwfResultsTest2(source);
+//    printmwfResultsTest2(source);
 }
 
 int GraphDualCriteria::checkNewJourneyAndInsert(mwfJourney& newJourney, int v)

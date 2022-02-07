@@ -463,16 +463,15 @@ void Graph::initial_query(const char* filePath)
     t_start = 0;
     t_end = infinity;
     
-    FILE* file = fopen(filePath,"r");
-    int s, x;
-    for(int i = 0 ;i < 100 ;i ++)
+    ifstream inputFile(filePath);
+    string inputLine;
+
+    int s;
+    while (getline(inputFile,inputLine))
     {
-        x=fscanf(file,"%d",&s);
-    //    int y;
-    //    x=fscanf(file,"%d%d",&s, &y);
+        sscanf(inputLine.c_str(), "%d",&s);
         sources.push_back(s);
     }
-
 }
 
 
