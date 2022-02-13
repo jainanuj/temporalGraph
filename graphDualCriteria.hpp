@@ -31,6 +31,22 @@ struct mwfJourney {
     vector<tuple<int, int, int>> lastExpandedAt;     //(intvl.startTime,lambda) of intvl in which this journey was expanded on each nbr. Last element is flag whether it was expanded or not.
 };
 
+//journeyClass:
+//start, end, prevLambda, prevNbrIndex,
+struct mwfJourneyClass {
+    int arrivalTimeStart;
+    int arrivalTimeEnd;
+    int prevNodeNbrIndex;
+    int lastTravelTime;
+    int wtTime;
+    int prevNode;
+    int prevJourneyIndex;
+    int prevDepTime;
+    vector<tuple<int, int, int>> lastExpandedAt;     //(intvl.startTime,lambda) of intvl in which this journey was expanded on each nbr. Last element is flag whether it was expanded or not.
+};
+
+//Carryover. - shouldn't say prevJourneyIndex. (cuz it may have changed).
+
 class GraphDualCriteria  : public Graph
 {
 public:
@@ -44,14 +60,25 @@ public:
     void printmhfResultsTest(int source);
     void mhfHopByHop(int source);
     void mwfStreamingIntvls(int source);
+    void mwfStreamingIntvlsWJourneyClasses(int source);
+    
     void build_mhf_Journeys(int source, vector<std::tuple<int, int, int>>& mhfJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys);
     void printmhfResultsTest2(int source, vector<std::tuple<int, int, int>>& mhfJourney);
     void printmwfResultsTest2(int source);
     int removeMinIntvl(intervalInfo &newIntvl, int& indexPreKnownIntvls);
     int searchPrevJourney(int node, int beforeTime);
+    int searchPrevJourneyClass(int node, int beforeTime);
     void setupNewJourney(int v, int arrivalTime);
+    void setupNewJourneyClass(int v, int arrivalTime);
     int getPrevJourney(intervalInfo& intvl);
+    int getPrevJourneyClass(intervalInfo& intvl);
     int checkNewJourneyAndInsert(mwfJourney& newJourney, int v);
+    int checkNewJourneyClassAndInsert(mwfJourneyClass& newJourneyClass, int v);
+    bool resolveOverlap(mwfJourneyClass& lastJClass, mwfJourneyClass& newJourneyClass, mwfJourneyClass& carryOverJClass);
+    bool checkJourneyClassDominance(mwfJourneyClass& firstJClass, mwfJourneyClass& nextJClass);
+    void buildAndPushIntvlInHeap(mwfJourneyClass& carryOverJClass, int v);
+    int createNewJourneyClass(mwfJourneyClass& prevJourneyClass, intervalInfo& intervalToExpand, mwfJourneyClass& newJourenyClass, int prevJourenyClassIndex);
+    
 public:
     vector <pair<int,int>> arr_hop_time, f_time;
 
@@ -59,6 +86,9 @@ public:
     vector<intervalInfo> listOfPreKnownIntvls;
     vector<intervalInfo> listOfAdHocIntvls;
     vector<mwfJourney> finalMWFJourneys;
+    vector<mwfJourneyClass> finalMWFJourneyClass;
+
+    vector<vector<mwfJourneyClass>> listJourneyClasses;    //List of journeys at each node.
 };
 
 class nodeComparisonArrHops {
