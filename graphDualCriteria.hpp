@@ -54,6 +54,7 @@ public:
     bool lessCompArrHop(std::pair<int, int> newArrHop, std::pair<int,int> oldArrHop);
     void initial_ds_eha();
     void initial_ds_ewa();
+    void initial_ds_ewa_classes();
     int earliest_arrival_minHop_pair(int source);
     void run_mhf();
     void run_mwf();
@@ -65,6 +66,7 @@ public:
     void build_mhf_Journeys(int source, vector<std::tuple<int, int, int>>& mhfJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys);
     void printmhfResultsTest2(int source, vector<std::tuple<int, int, int>>& mhfJourney);
     void printmwfResultsTest2(int source);
+    void printmwfClassesResultsTest2(int source);
     int removeMinIntvl(intervalInfo &newIntvl, int& indexPreKnownIntvls);
     int searchPrevJourney(int node, int beforeTime);
     int searchPrevJourneyClass(int node, int beforeTime);
@@ -89,6 +91,7 @@ public:
     vector<mwfJourneyClass> finalMWFJourneyClass;
 
     vector<vector<mwfJourneyClass>> listJourneyClasses;    //List of journeys at each node.
+    int max_runTime, max_Src;
 };
 
 class nodeComparisonArrHops {

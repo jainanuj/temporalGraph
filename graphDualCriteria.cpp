@@ -44,8 +44,13 @@ GraphDualCriteria::GraphDualCriteria(const char* filePath, int contactSeq, const
         }
         //Sort the vector w.r.t arrival time and start time.
         std::sort<vector<intervalInfo>::iterator, compareIntvlsMWF>(listOfPreKnownIntvls.begin(), listOfPreKnownIntvls.end(), intvlCompare);
+#ifdef __NO_CLASSES__
         listJourneys.resize(V);
         finalMWFJourneys.resize(V);
+#else
+        listJourneyClasses.resize(V);
+        finalMWFJourneyClass.resize(V);
+#endif
     }
 }
 
@@ -182,10 +187,24 @@ void GraphDualCriteria::initial_ds_ewa()
     }
 }
 
+void GraphDualCriteria::initial_ds_ewa_classes()
+{
+    for (int i=0; i< V; i++)
+    {
+        finalMWFJourneyClass[i].arrivalTimeStart = infinity;
+        finalMWFJourneyClass[i].arrivalTimeEnd = infinity;
+        finalMWFJourneyClass[i].wtTime = infinity;
+        finalMWFJourneyClass[i].prevNode=-1;
+        listJourneyClasses[i].clear();
+    }
+}
+
 
 void GraphDualCriteria::run_mhf()
 {
     time_sum=0;
+    max_runTime = 0;
+    max_Src = -1;
     
     for(int i = 0 ;i < sources.size() ;i ++)
     {
@@ -195,6 +214,7 @@ void GraphDualCriteria::run_mhf()
     }
     
     print_avg_time();
+    cout << "max Runtime: " << max_runTime << "Max Src: " << max_Src << endl;
 }
 
 void GraphDualCriteria::run_mwf()
@@ -204,7 +224,11 @@ void GraphDualCriteria::run_mwf()
     for(int i = 0 ;i < sources.size() ; i++)
     {
         initial_ds_ea();
+#ifdef __NO_CLASSES__
         initial_ds_ewa();
+#else
+        initial_ds_ewa_classes();
+#endif
         //earliest_arrival(sources[i]);
         //initial_ds_ea();earliest_arrival_pair(sources[i]);
         //initial_ds_ea();
@@ -212,7 +236,11 @@ void GraphDualCriteria::run_mwf()
         //minWaitForemost(sources[i]);
  //       minWaitForemostPrioritized(sources[i]);
         //minWaitForemostPrioritizedNoSet(sources[i]);
+#ifdef __NO_CLASSES__
         mwfStreamingIntvls(sources[i]);
+#else
+        mwfStreamingIntvlsWJourneyClasses(sources[i]);
+#endif
     }
     print_avg_time();
 }
@@ -306,11 +334,16 @@ void GraphDualCriteria::mhfHopByHop(int source)
 
     t.stop();
     time_sum += t.GetRuntime();
-    cout << "Num Nodes seen: " << numNodesSeen << endl;
+    if (t.GetRuntime() > max_runTime)
+    {
+        max_runTime = t.GetRuntime();
+        max_Src = source;
+    }
+    //cout << "Num Nodes seen: " << numNodesSeen << endl;
 
 #ifdef __TEST__
 //    build_mhf_Journeys(source, earliestKnownTimeArrival, allHopJourneys);
-    printmhfResultsTest2(source, earliestKnownTimeArrival);
+//    printmhfResultsTest2(source, earliestKnownTimeArrival);
 #endif
 
 //    print_shortest_paths(source);
@@ -636,7 +669,7 @@ void GraphDualCriteria::setupNewJourneyClass(int v, int arrivalTime)
             continue;
         if (arrivalTime <= vertices[v].neighbors[i].edgeSchedules[nextIntvl].intvlStart)
         {
-            vertices[v].neighbors[i].edgeSchedules[nextIntvl].prevJourneyIndex=(int)listJourneys[v].size()-1;
+            vertices[v].neighbors[i].edgeSchedules[nextIntvl].prevJourneyIndex=(int)listJourneyClasses[v].size()-1;
         }
         else if ( (vertices[v].neighbors[i].edgeSchedules[nextIntvl].intvlStart < arrivalTime)
                  && (arrivalTime <= vertices[v].neighbors[i].edgeSchedules[nextIntvl].intvlEnd) )
@@ -646,7 +679,7 @@ void GraphDualCriteria::setupNewJourneyClass(int v, int arrivalTime)
             adHocIntvl.intvlStart = nextTravelTime; adHocIntvl.intvlId=-1;
             adHocIntvl.lambda= vertices[v].neighbors[i].edgeSchedules[nextIntvl].traveTime;
             adHocIntvl.u = v; adHocIntvl.nbrIndexFor_v=i; adHocIntvl.v = vertices[v].neighbors[i].nbrId;
-            adHocIntvl.prevJourneyIndex = (int)listJourneys[v].size()-1;
+            adHocIntvl.prevJourneyIndex = (int)listJourneyClasses[v].size()-1;
             listOfAdHocIntvls.push_back(adHocIntvl);
             std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap);
         }
@@ -655,6 +688,15 @@ void GraphDualCriteria::setupNewJourneyClass(int v, int arrivalTime)
 
 //CheckOverlap & dominance & carryover. Then insert in journeys list.
 //put Carryover back in intvl heap.
+
+//Datastructures:
+//Graph
+//intvlInfo
+//intvlsList
+//intvlHeap or AdHocIntvlsHeap
+//mwfJourneyClass
+//listClasses at each node
+//finalMWFClass
 
 void GraphDualCriteria::mwfStreamingIntvlsWJourneyClasses(int source)
 {
@@ -685,7 +727,7 @@ void GraphDualCriteria::mwfStreamingIntvlsWJourneyClasses(int source)
     setupNewJourneyClass(source, newJourneyClass.arrivalTimeStart);      //Commented as may not be reqd for csg graphs. TBD
     newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);
     int u=0,v=0,nbrIndex=0,intvlId=0;
-    while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls < totalStaticIntvls))
+    while ( ((!listOfAdHocIntvls.empty()) || (indexPreKnownIntvls <= totalStaticIntvls))
            && (numNodesRchd < nodesReachable) && (newIntvlFrom != -1))// && (newIntvl.intvlStart+newIntvl.lambda <= maxFmstTime))
     {
         int currArrivalTime = newIntvl.intvlStart+newIntvl.lambda;
@@ -693,7 +735,7 @@ void GraphDualCriteria::mwfStreamingIntvlsWJourneyClasses(int source)
         while ((currArrivalTime == newIntvl.intvlStart+newIntvl.lambda) && (newIntvlFrom != -1))
         {
             u = newIntvl.u; v=newIntvl.v; nbrIndex=newIntvl.nbrIndexFor_v; intvlId=newIntvl.intvlId;
-            if (v != source)        //no point going back to source. move on to next intvl.     //TBD
+            if (v != source)        //no point going back to source. move on to next intvl.
             {
                 prevJourneyClassIndex = getPrevJourneyClass(newIntvl);
                 if (prevJourneyClassIndex != -1)
@@ -720,6 +762,7 @@ void GraphDualCriteria::mwfStreamingIntvlsWJourneyClasses(int source)
     t.stop();
     time_sum += t.GetRuntime();
 //    printmwfResultsTest2(source);
+    printmwfClassesResultsTest2(source);
 }
 
 int GraphDualCriteria::getPrevJourneyClass(intervalInfo& intvl)
@@ -769,6 +812,7 @@ int GraphDualCriteria::createNewJourneyClass(mwfJourneyClass& prevJourneyClass, 
             prevJourneyClass.lastExpandedAt[v_nbrIndex] = make_tuple(intervalToExpand.intvlStart, intervalToExpand.lambda,1);
         }
     }
+    
     if (retVal == 1)
     {
         newJourneyClass.arrivalTimeStart = intervalToExpand.intvlStart+intervalToExpand.lambda;
@@ -789,25 +833,22 @@ int GraphDualCriteria::checkNewJourneyClassAndInsert(mwfJourneyClass& newJourney
     if (!listJourneyClasses[v].empty())
     {
         mwfJourneyClass lastJClass = listJourneyClasses[v][listJourneyClasses[v].size()-1];
-        newJourneyDominated = resolveOverlap(lastJClass,newJourneyClass,carryOverJClass);     //This results in 2 or 3 non-overlapping journeys. Overlap portion taken care of.
+        newJourneyDominated = resolveOverlap(lastJClass,newJourneyClass,carryOverJClass);     //This results in 1 or 2 non-overlapping journeys. Overlap portion taken care of.
         if (lastJClass.arrivalTimeStart <= lastJClass.arrivalTimeEnd)   //lastJClass survived.
         {
-            if (!newJourneyDominated)
+            if (!newJourneyDominated) //&& (listJourneyClasses[v][listJourneyClasses[v].size()-1].arrivalTimeEnd == lastJClass.arrivalTimeEnd))
                 newJourneyDominated = checkJourneyClassDominance(lastJClass,newJourneyClass);
             if (!newJourneyDominated)     //New Class survived.
             {
-                listJourneyClasses[v][listJourneyClasses[v].size()-1].arrivalTimeEnd = lastJClass.arrivalTimeEnd;
+//                listJourneyClasses[v][listJourneyClasses[v].size()-1].arrivalTimeEnd = lastJClass.arrivalTimeEnd;       //should comment out.
                 listJourneyClasses[v].push_back(newJourneyClass);
                 inserted = 1;
-                checkJourneyClassDominance(newJourneyClass,carryOverJClass);
-                if (carryOverJClass.arrivalTimeStart <= carryOverJClass.arrivalTimeEnd) //at least some part of carryOver survived.
-                {
-                    buildAndPushIntvlInHeap(carryOverJClass, v);
-                }
+//                checkJourneyClassDominance(newJourneyClass,carryOverJClass);        //should comment out.
+//                buildAndPushIntvlInHeap(carryOverJClass, v);                 //should comment out. //push whatever part carryOver survived back on intvl heap.
             }
             else        //new journey was dominated
             {
-                buildAndPushIntvlInHeap(newJourneyClass, v);    //the new journey class was dominated, but push back the portion of new journey class that survived.
+                buildAndPushIntvlInHeap(newJourneyClass, v);    //the new journey class was dominated, push back the portion of new journey class that survived.
                 return 0;
             }
         }
@@ -815,14 +856,8 @@ int GraphDualCriteria::checkNewJourneyClassAndInsert(mwfJourneyClass& newJourney
         {
             listJourneyClasses[v][listJourneyClasses[v].size()-1] = newJourneyClass;
             inserted=1;
-            if (carryOverJClass.arrivalTimeStart <= carryOverJClass.arrivalTimeEnd)
-            {
-                checkJourneyClassDominance(newJourneyClass,carryOverJClass);
-                if (carryOverJClass.arrivalTimeStart <= carryOverJClass.arrivalTimeEnd)
-                {
-                    buildAndPushIntvlInHeap(carryOverJClass, v);        //push back carryover that survived.
-                }
-            }
+//            checkJourneyClassDominance(newJourneyClass,carryOverJClass);        //not needed comment out
+//            buildAndPushIntvlInHeap(carryOverJClass, v);        //push back carryover that survived.        //not needed comment out.
         }
     }
     else
@@ -846,27 +881,25 @@ bool GraphDualCriteria::resolveOverlap(mwfJourneyClass &lastJClass, mwfJourneyCl
     bool newJourneyDominated = false;
     if (newJourneyClass.arrivalTimeStart > lastJClass.arrivalTimeEnd)   //No overlap.
         return false;
-    if (newJourneyClass.wtTime >= lastJClass.wtTime)        //new is Dominated, so just trim it at the beginnig and return;
+    else if (newJourneyClass.wtTime >= lastJClass.wtTime)        //new is Dominated, so just trim it at the beginnig and return;
     {
-        if (newJourneyClass.arrivalTimeStart <= lastJClass.arrivalTimeEnd)
-        {
-            newJourneyClass.arrivalTimeStart = lastJClass.arrivalTimeEnd+1;
-            newJourneyDominated = true;
-        }
+        newJourneyClass.arrivalTimeStart = lastJClass.arrivalTimeEnd+1;
+        newJourneyDominated = true;
         return newJourneyDominated;
     }
-
-    //There is some overlap and newJourneyClass.wt < lastJClass.wt.
-    carryOverJClass = lastJClass;
-    if (newJourneyClass.arrivalTimeStart == lastJClass.arrivalTimeStart)
+    else //There is some overlap and newJourneyClass.wt < lastJClass.wt.
     {
-        carryOverJClass.arrivalTimeStart = newJourneyClass.arrivalTimeEnd+1;
-        lastJClass.arrivalTimeEnd=-1;
-    }
-    else if (newJourneyClass.arrivalTimeStart <= lastJClass.arrivalTimeEnd)
-    {
-        lastJClass.arrivalTimeEnd = newJourneyClass.arrivalTimeStart-1;
-        carryOverJClass.arrivalTimeStart=newJourneyClass.arrivalTimeEnd+1;
+        carryOverJClass = lastJClass;
+        if (newJourneyClass.arrivalTimeStart == lastJClass.arrivalTimeStart)
+        {
+            carryOverJClass.arrivalTimeStart = newJourneyClass.arrivalTimeEnd+1;
+            lastJClass.arrivalTimeEnd=-1;
+        }
+        else if (newJourneyClass.arrivalTimeStart > lastJClass.arrivalTimeStart)
+        {
+            lastJClass.arrivalTimeEnd = newJourneyClass.arrivalTimeStart-1;
+            carryOverJClass.arrivalTimeStart=newJourneyClass.arrivalTimeEnd+1;
+        }
     }
     return newJourneyDominated;
 }
@@ -910,11 +943,41 @@ void GraphDualCriteria::buildAndPushIntvlInHeap(mwfJourneyClass &carryOverJClass
     std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap);
 }
 
-//setUpNewJourneyClass
 
 
 
-
+void GraphDualCriteria::printmwfClassesResultsTest2(int source)
+{
+    int rv = 0;
+//    ofstream earliestMWFOut(mwfResults);
+    cout << V << "\n";
+    for (int i = 0; i < finalMWFJourneyClass.size(); i++)
+    {
+//        if (final >= infinity)
+//            continue;
+        cout << i << " " << finalMWFJourneyClass[i].arrivalTimeStart << "  "  <<  finalMWFJourneyClass[i].wtTime <<"\n";
+        if (finalMWFJourneyClass[i].arrivalTimeStart < infinity)
+        {
+            rv++;
+            mwfJourneyClass currJourneyClass=finalMWFJourneyClass[i];
+            cout << "("<< i <<"," <<finalMWFJourneyClass[i].arrivalTimeStart << "," <<finalMWFJourneyClass[i].wtTime<< ")<--";
+            while (currJourneyClass.prevNode != -1)
+            {
+                int prevNode = currJourneyClass.prevNode, depTime = currJourneyClass.prevDepTime;
+                int prevIndex=currJourneyClass.prevJourneyIndex;
+                currJourneyClass = listJourneyClasses[prevNode].at(prevIndex);
+                cout << depTime<< "("<< prevNode << "," << currJourneyClass.arrivalTimeStart <<"," << currJourneyClass.wtTime << ")<--";
+            }
+            cout << source << endl;
+        }
+    }
+    cout << "Source: " << source << "\n";
+    cout << "Num reachable vertices: " << rv << "\n";
+    cout << "Ratio of reachable vertices " << (float)rv/V << "\n";
+//    avgHops = sumHops/rv;
+//    cout << "Max Hops = " << maxHopCount << "\n";
+//    cout << "Avg # hops = " << avgHops << "\n";
+}
 
 
 
