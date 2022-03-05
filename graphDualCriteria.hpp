@@ -80,6 +80,7 @@ public:
     bool checkJourneyClassDominance(mwfJourneyClass& firstJClass, mwfJourneyClass& nextJClass);
     void buildAndPushIntvlInHeap(mwfJourneyClass& carryOverJClass, int v);
     int createNewJourneyClass(mwfJourneyClass& prevJourneyClass, intervalInfo& intervalToExpand, mwfJourneyClass& newJourenyClass, int prevJourenyClassIndex);
+    void recordFinalJourney(int v, mwfJourneyClass& newJourneyClass);
     
 public:
     vector <pair<int,int>> arr_hop_time, f_time;

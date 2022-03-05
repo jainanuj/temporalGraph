@@ -864,16 +864,30 @@ int GraphDualCriteria::checkNewJourneyClassAndInsert(mwfJourneyClass& newJourney
     {
         inserted = 2;
         listJourneyClasses[v].push_back(newJourneyClass);
-        finalMWFJourneyClass[v] = newJourneyClass;
+//        finalMWFJourneyClass[v] = newJourneyClass;
+        recordFinalJourney(v,newJourneyClass);
     }
 
     if (inserted == 1)
     {
         if ((finalMWFJourneyClass[v].arrivalTimeStart == newJourneyClass.arrivalTimeStart) &&
             (finalMWFJourneyClass[v].wtTime > newJourneyClass.wtTime))
-            finalMWFJourneyClass[v] = newJourneyClass;
+            //finalMWFJourneyClass[v] = newJourneyClass;
+            recordFinalJourney(v, newJourneyClass);
     }
     return inserted;
+}
+
+void GraphDualCriteria::recordFinalJourney(int v, mwfJourneyClass& newJourneyClass)
+{
+    finalMWFJourneyClass[v].arrivalTimeStart = newJourneyClass.arrivalTimeStart;
+    finalMWFJourneyClass[v].arrivalTimeEnd = newJourneyClass.arrivalTimeEnd;
+    finalMWFJourneyClass[v].wtTime = newJourneyClass.wtTime;
+    finalMWFJourneyClass[v].lastTravelTime=newJourneyClass.lastTravelTime;
+    finalMWFJourneyClass[v].prevNode=newJourneyClass.prevNode;
+    finalMWFJourneyClass[v].prevDepTime=newJourneyClass.prevDepTime;
+    finalMWFJourneyClass[v].prevJourneyIndex=newJourneyClass.prevJourneyIndex;
+    finalMWFJourneyClass[v].prevNodeNbrIndex=newJourneyClass.prevNodeNbrIndex;
 }
         
 bool GraphDualCriteria::resolveOverlap(mwfJourneyClass &lastJClass, mwfJourneyClass &newJourneyClass, mwfJourneyClass &carryOverJClass)
