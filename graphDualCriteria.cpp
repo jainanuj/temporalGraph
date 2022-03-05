@@ -953,8 +953,8 @@ void GraphDualCriteria::printmwfClassesResultsTest2(int source)
     cout << V << "\n";
     for (int i = 0; i < finalMWFJourneyClass.size(); i++)
     {
-//        if (final >= infinity)
-//            continue;
+        if (finalMWFJourneyClass[i].arrivalTimeStart >= infinity)
+            continue;
         cout << i << " " << finalMWFJourneyClass[i].arrivalTimeStart << "  "  <<  finalMWFJourneyClass[i].wtTime <<"\n";
         if (finalMWFJourneyClass[i].arrivalTimeStart < infinity)
         {
