@@ -661,7 +661,7 @@ void GraphDualCriteria::setupNewJourneyClass(int v, int arrivalTime)
 {
     int nextTravelTime=0,nextIntvl=0;
     compareIntvlsMWFMinHeap intvlCompareObjForHeap;
-    for (int i=0; i< vertices[v].numNbrs;i++)
+    for (int i=0; i< vertices[v].numNbrs;i++)       //This could be the problem. vector lastExpandedAt not been resized
     {
         listJourneyClasses[v][(int)listJourneyClasses[v].size()-1].lastExpandedAt[i] = make_tuple(-1,-1,0); //starting journey isnt expanded yet
         nextTravelTime = earliestUseEdgeAfterT(v, vertices[v].neighbors[i], arrivalTime, nextIntvl);
@@ -717,7 +717,8 @@ void GraphDualCriteria::mwfStreamingIntvlsWJourneyClasses(int source)
     newJourneyClass.prevNode = -1; newJourneyClass.wtTime=0; newJourneyClass.prevJourneyIndex=-1;
     newJourneyClass.lastExpandedAt.resize(vertices[source].numNbrs);
     listJourneyClasses[source].push_back(newJourneyClass);        //known journeys so far at source.
-    finalMWFJourneyClass[source] = newJourneyClass;
+    recordFinalJourney(source, newJourneyClass);
+    //finalMWFJourneyClass[source] = newJourneyClass;
     
     numNodesRchd++;
     int totalStaticIntvls = (int)listOfPreKnownIntvls.size();
@@ -788,7 +789,7 @@ int GraphDualCriteria::getPrevJourneyClass(intervalInfo& intvl)
 int GraphDualCriteria::createNewJourneyClass(mwfJourneyClass& prevJourneyClass, intervalInfo& intervalToExpand, mwfJourneyClass& newJourneyClass, int prevJourenyClassIndex)
 {
     int retVal = 0;
-    int u = intervalToExpand.u, v_nbrIndex = intervalToExpand.nbrIndexFor_v;
+    int u = intervalToExpand.u, v_nbrIndex = intervalToExpand.nbrIndexFor_v, v = intervalToExpand.v;
     if (intervalToExpand.intvlStart < prevJourneyClass.arrivalTimeEnd)
     {
         retVal = 1;
@@ -798,7 +799,7 @@ int GraphDualCriteria::createNewJourneyClass(mwfJourneyClass& prevJourneyClass, 
         else
         {
             newJourneyClass.arrivalTimeEnd = prevJourneyClass.arrivalTimeEnd + intervalToExpand.lambda;
-            prevJourneyClass.lastExpandedAt[v_nbrIndex] = make_tuple(intervalToExpand.intvlStart, intervalToExpand.lambda,1);
+            prevJourneyClass.lastExpandedAt[v_nbrIndex] = make_tuple(intervalToExpand.intvlStart, intervalToExpand.lambda,1);       //TBD - check v_nbrIndex < numNbrs.
         }
     }
     else
@@ -809,17 +810,19 @@ int GraphDualCriteria::createNewJourneyClass(mwfJourneyClass& prevJourneyClass, 
             retVal = 1;
             newJourneyClass.arrivalTimeEnd = intervalToExpand.intvlStart+intervalToExpand.lambda;
             newJourneyClass.wtTime = prevJourneyClass.wtTime + intervalToExpand.intvlStart - prevJourneyClass.arrivalTimeEnd;
-            prevJourneyClass.lastExpandedAt[v_nbrIndex] = make_tuple(intervalToExpand.intvlStart, intervalToExpand.lambda,1);
+            prevJourneyClass.lastExpandedAt[v_nbrIndex] = make_tuple(intervalToExpand.intvlStart, intervalToExpand.lambda,1);       //TBD - check v_nbrIndex < numNbrs.
         }
     }
     
-    if (retVal == 1)
+    if (retVal == 1)            //TBD lastExpAt has not been resized properly.
     {
         newJourneyClass.arrivalTimeStart = intervalToExpand.intvlStart+intervalToExpand.lambda;
         newJourneyClass.lastTravelTime = intervalToExpand.lambda;
         newJourneyClass.prevJourneyIndex = prevJourenyClassIndex;
         newJourneyClass.prevNode=u; newJourneyClass.prevDepTime=intervalToExpand.intvlStart;
         newJourneyClass.prevNodeNbrIndex= intervalToExpand.nbrIndexFor_v;
+        newJourneyClass.lastExpandedAt.clear();
+        newJourneyClass.lastExpandedAt.resize(vertices[v].numNbrs);
     }
     return retVal;
 }
@@ -854,7 +857,7 @@ int GraphDualCriteria::checkNewJourneyClassAndInsert(mwfJourneyClass& newJourney
         }
         else
         {
-            listJourneyClasses[v][listJourneyClasses[v].size()-1] = newJourneyClass;
+            listJourneyClasses[v][listJourneyClasses[v].size()-1] = newJourneyClass;        //TBD record all values. Don't copy as lastExpAt may not be sized appropriately.
             inserted=1;
 //            checkJourneyClassDominance(newJourneyClass,carryOverJClass);        //not needed comment out
 //            buildAndPushIntvlInHeap(carryOverJClass, v);        //push back carryover that survived.        //not needed comment out.
