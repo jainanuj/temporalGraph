@@ -17,6 +17,8 @@
 #define __TEST__
 #endif
 
+#define __NO_CLASSES__
+
 GraphDualCriteria::GraphDualCriteria(const char* filePath, int contactSeq, const char* option) :  Graph(filePath, contactSeq, option)
 {
     struct intervalInfo intvl;
@@ -904,9 +906,14 @@ bool GraphDualCriteria::resolveOverlap(mwfJourneyClass &lastJClass, mwfJourneyCl
         newJourneyDominated = true;
         return newJourneyDominated;
     }
+    else if (newJourneyClass.arrivalTimeStart == lastJClass.arrivalTimeStart) //new arriv at same time with less wt
+    {
+        carryOverJClass.arrivalTimeStart = newJourneyClass.arrivalTimeEnd+1;
+        lastJClass.arrivalTimeEnd=-1;
+    }/*
     else //There is some overlap and newJourneyClass.wt < lastJClass.wt.
     {
-        carryOverJClass = lastJClass;
+        carryOverJClass = lastJClass;       //
         if (newJourneyClass.arrivalTimeStart == lastJClass.arrivalTimeStart)
         {
             carryOverJClass.arrivalTimeStart = newJourneyClass.arrivalTimeEnd+1;
@@ -917,7 +924,7 @@ bool GraphDualCriteria::resolveOverlap(mwfJourneyClass &lastJClass, mwfJourneyCl
             lastJClass.arrivalTimeEnd = newJourneyClass.arrivalTimeStart-1;
             carryOverJClass.arrivalTimeStart=newJourneyClass.arrivalTimeEnd+1;
         }
-    }
+    }*/
     return newJourneyDominated;
 }
 
@@ -929,7 +936,8 @@ bool GraphDualCriteria::checkJourneyClassDominance(mwfJourneyClass& firstJClass,
         return true;
     if (firstJClass.arrivalTimeStart > firstJClass.arrivalTimeEnd)
         return  false;
-    if (nextJClass.wtTime <= firstJClass.wtTime)
+    if ((nextJClass.wtTime <= firstJClass.wtTime) &&
+        (nextJClass.arrivalTimeStart > firstJClass.arrivalTimeEnd))
         return false;
     
     cutOverT = nextJClass.wtTime - firstJClass.wtTime + firstJClass.arrivalTimeEnd;
@@ -937,7 +945,8 @@ bool GraphDualCriteria::checkJourneyClassDominance(mwfJourneyClass& firstJClass,
         return false;
     else
     {
-        nextJClass.arrivalTimeStart=cutOverT+1;
+        //nextJClass.arrivalTimeStart=cutOverT+1;
+        nextJClass.arrivalTimeEnd=-1;
         dominated = true;
     }
     return dominated;
