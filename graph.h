@@ -25,6 +25,7 @@ struct Interval
     int adjustedEnd;
     int traveTime;
     int prevJourneyIndex;
+    int divTime;
 public:
     int isValidFor(int t)
     {

@@ -91,6 +91,7 @@ Graph::Graph(const char* filePath, int contactSeq = 0, const char * option="any"
             {
                 nbr.edgeSchedules[intvls].intvlStart = intvlStart; nbr.edgeSchedules[intvls].intvlEnd = intvlEnd;
                 nbr.edgeSchedules[intvls].adjustedEnd = adjustedEnd; nbr.edgeSchedules[intvls].traveTime = lambda;
+                nbr.edgeSchedules[intvls].divTime = -1;   //This is used only when interval is divided for mwf.
                 intvls++;
             }
         }

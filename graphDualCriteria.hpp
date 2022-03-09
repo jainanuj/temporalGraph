@@ -20,6 +20,7 @@ struct intervalInfo {
     int lambda;
     int intvlId;            //Index of this intvl in original graph defn. for PreKnownIntvls
     int prevJourneyIndex;   //Index of last journey before intvl in the list of journeys arriving at u
+    int divTime;
 };
 
 struct mwfJourney {
@@ -28,6 +29,11 @@ struct mwfJourney {
     int prevNode;
     int prevJourneyIndex;
     int prevDepTime;
+    /** required only for classes*/
+    bool isClass;
+    int arrivalTimeEnd;
+    int lastTravelTime;
+    int prevNodeNbrIndex;
     vector<tuple<int, int, int>> lastExpandedAt;     //(intvl.startTime,lambda) of intvl in which this journey was expanded on each nbr. Last element is flag whether it was expanded or not.
 };
 
@@ -62,6 +68,7 @@ public:
     void mhfHopByHop(int source);
     void mwfStreamingIntvls(int source);
     void mwfStreamingIntvlsWJourneyClasses(int source);
+    void mwfStreamingIntvlsV2(int source);
     
     void build_mhf_Journeys(int source, vector<std::tuple<int, int, int>>& mhfJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys);
     void printmhfResultsTest2(int source, vector<std::tuple<int, int, int>>& mhfJourney);
@@ -75,10 +82,12 @@ public:
     int getPrevJourney(intervalInfo& intvl);
     int getPrevJourneyClass(intervalInfo& intvl);
     int checkNewJourneyAndInsert(mwfJourney& newJourney, int v);
+    int checkNewJourneyAndInsertV2(mwfJourney& newJourney, int v);
     int checkNewJourneyClassAndInsert(mwfJourneyClass& newJourneyClass, int v);
     bool resolveOverlap(mwfJourneyClass& lastJClass, mwfJourneyClass& newJourneyClass, mwfJourneyClass& carryOverJClass);
     bool checkJourneyClassDominance(mwfJourneyClass& firstJClass, mwfJourneyClass& nextJClass);
     void buildAndPushIntvlInHeap(mwfJourneyClass& carryOverJClass, int v);
+    void buildAndPushIntvlInHeapV2(mwfJourney &carryOverJ, int v);
     int createNewJourneyClass(mwfJourneyClass& prevJourneyClass, intervalInfo& intervalToExpand, mwfJourneyClass& newJourenyClass, int prevJourenyClassIndex);
     void recordFinalJourney(int v, mwfJourneyClass& newJourneyClass);
     
