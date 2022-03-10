@@ -500,7 +500,7 @@ getPreviousJourney(interval newIntvl)
  }
 
  ****************************/
-
+/*
 void GraphDualCriteria::mwfStreamingIntvls(int source)
 {
     mwfJourney newJourney;
@@ -583,7 +583,7 @@ void GraphDualCriteria::mwfStreamingIntvls(int source)
     time_sum += t.GetRuntime();
 //    printmwfResultsTest2(source);
 }
-
+*/
 void GraphDualCriteria::mwfStreamingIntvlsV2(int source)
 {
     mwfJourney newJourney;
@@ -603,7 +603,7 @@ void GraphDualCriteria::mwfStreamingIntvlsV2(int source)
     newJourney.isClass=true;
     newJourney.prevNode = -1; newJourney.wtTime=0;newJourney.prevJourneyIndex=-1;newJourney.lastTravelTime=-1;
     newJourney.prevNodeNbrIndex=-1;
-    newJourney.lastExpandedAt.resize(vertices[source].numNbrs);
+//    newJourney.lastExpandedAt.resize(vertices[source].numNbrs);
     listJourneys[source].push_back(newJourney);        //known journeys so far at source.
     finalMWFJourneys[source] = newJourney;
     
@@ -645,18 +645,17 @@ void GraphDualCriteria::mwfStreamingIntvlsV2(int source)
                     if (listJourneys[u][prevJourneyIndex].arrivalTimeEnd > newIntvl.intvlEnd)
                         newJourney.arrivalTimeEnd=newIntvl.intvlEnd+newIntvl.lambda;
                     else
-                    {
                         newJourney.arrivalTimeEnd=
                         listJourneys[u][prevJourneyIndex].arrivalTimeEnd+newIntvl.lambda;
-                        listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
-                    }
+//                        listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
                     newJourney.isClass = true;
                 }
             }
-            int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex]);
-            if ((prevJourneyLastExtLmbda < newIntvl.lambda) || (u == source)
-                || (newJourney.isClass))  //Always expand from source as there is no waiting at source. TBD
-            {
+//            int prevJourneyLastExtLmbda = get<1>(listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex]);
+//            if ((prevJourneyLastExtLmbda < newIntvl.lambda) ||
+//                (u == source)
+//                || (newJourney.isClass))  //Always expand from source as there is no waiting at source. TBD
+//            {
                 newJourney.arrivalTime = newIntvl.intvlStart+newIntvl.lambda;
                 if ((u== source) || (newJourney.isClass)) //Never any waiting at source.      //TBD
                     newJourney.wtTime = 0;
@@ -665,12 +664,10 @@ void GraphDualCriteria::mwfStreamingIntvlsV2(int source)
                 
                 newJourney.prevNode=u;newJourney.prevJourneyIndex=prevJourneyIndex;newJourney.prevDepTime=newIntvl.intvlStart;
                 newJourney.lastTravelTime=newIntvl.lambda;newJourney.prevNodeNbrIndex=newIntvl.nbrIndexFor_v;
-                //newJourney.prevLambda=newIntvl.lambda;newJourney.prevNodeNbrIndex=newIntvl.nbrIndexFor_v;
-                //if carryover, the intvl will be start=carryoverJ.st - lambda. end = carryoverjJ.e-lambda.
-                if (!newJourney.isClass)
-                    listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
-                newJourney.lastExpandedAt.clear();
-                newJourney.lastExpandedAt.resize(vertices[v].numNbrs);
+//                if (!newJourney.isClass)
+//                    listJourneys[u][prevJourneyIndex].lastExpandedAt[nbrIndex] = make_tuple(newIntvl.intvlStart,newIntvl.lambda,1);
+//                newJourney.lastExpandedAt.clear();
+//                newJourney.lastExpandedAt.resize(vertices[v].numNbrs);
                 int inserted = checkNewJourneyAndInsertV2(newJourney, v); //include check for classes.
                 if (inserted == 0)      //This journey was dominated by previous journey at v.
                 {
@@ -682,7 +679,7 @@ void GraphDualCriteria::mwfStreamingIntvlsV2(int source)
                     numNewNodesRchd++;
                 }
                 setupNewJourney(v, newJourney.arrivalTime);
-            }
+//            }
             newIntvlFrom = removeMinIntvl(newIntvl, indexPreKnownIntvls);
         }
         numNodesRchd += numNewNodesRchd;
@@ -794,7 +791,7 @@ void GraphDualCriteria::setupNewJourney(int v, int arrivalTime)
     compareIntvlsMWFMinHeap intvlCompareObjForHeap;
     for (int i=0; i< vertices[v].numNbrs;i++)
     {
-        listJourneys[v][(int)listJourneys[v].size()-1].lastExpandedAt[i] = make_tuple(-1,-1,0); //starting journey isnt expanded yet
+//        listJourneys[v][(int)listJourneys[v].size()-1].lastExpandedAt[i] = make_tuple(-1,-1,0); //starting journey isnt expanded yet
         nextTravelTime = earliestUseEdgeAfterT(v, vertices[v].neighbors[i], arrivalTime, nextIntvl);
         if ((nextIntvl == -1) || (nextTravelTime >= infinity))
             continue;
@@ -1143,9 +1140,9 @@ void GraphDualCriteria::buildAndPushIntvlInHeapV2(mwfJourney &carryOverJ, int v)
     carryOverIntvl.prevJourneyIndex = -1; carryOverIntvl.intvlId=-1;    //setting prev journeyIndex to -1 as there may have been some new prev journeys by now.
     listOfAdHocIntvls.push_back(carryOverIntvl);
     std::push_heap(listOfAdHocIntvls.begin(), listOfAdHocIntvls.end(), intvlCompareObjForHeap);
-    if (listJourneys[carryOverJ.prevNode][carryOverJ.prevJourneyIndex].arrivalTimeEnd == carryOverIntvl.intvlEnd)
-        get<1>(listJourneys[carryOverJ.prevNode][carryOverJ.prevJourneyIndex].
-           lastExpandedAt[carryOverJ.prevNodeNbrIndex]) = -1;   //Since the last portion of the journey was pushed back, it was not expanded.
+//    if (listJourneys[carryOverJ.prevNode][carryOverJ.prevJourneyIndex].arrivalTimeEnd == carryOverIntvl.intvlEnd)
+//        get<1>(listJourneys[carryOverJ.prevNode][carryOverJ.prevJourneyIndex].
+//           lastExpandedAt[carryOverJ.prevNodeNbrIndex]) = -1;   //Since the last portion of the journey was pushed back, it was not expanded.
 
 }
 
