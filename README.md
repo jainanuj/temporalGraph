@@ -1,5 +1,6 @@
-For generating graphs with wu model and Xuan model from Koblenz networks:
+For generating graphs with wu model and Xuan model from Koblenz networks. First line will b dropped as comment:
 ./XuantemporalGraph wu <filename>
+
 For the koblenz networks where first 2 lines have to be dropped.
 ./XuantemporalGraph wu <filename> 2
 
@@ -11,6 +12,11 @@ Graph is expressed in interval temporal format.
 The different algorithms supported right now:
 earliest
 shortest
+mhf
+mwf
+hbhshrtst 
+
+shortest is actually min-hop.
 
 Graph can be in intvl format as:
 u v numIntvls s1 e1 d1 s2 e2 d2 .....
@@ -24,7 +30,7 @@ cs format:
 1 2 3 1 1 5 1 10 2
 
 command to run with intvl format:
-./XuantemporalGraph earliest|shortest <filename>
+./XuantemporalGraph earliest|shortest|mhf|mwf|hbhshrtst <filename>
 
 command to run with cs format:
 ./XuantemporalGraph earliest|shortest <filename> cs
