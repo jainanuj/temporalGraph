@@ -30,10 +30,10 @@ cs format:
 1 2 3 1 1 5 1 10 2
 
 command to run with intvl format: <br>
-./XuantemporalGraph earliest|shortest|mhf|mwf|hbhshrtst <filename> <br>
+./XuantemporalGraph earliest|shortest|mhf|mwf|hbhshrtst \<filename\> <br>
 
 command to run with cs format: <br>
-./XuantemporalGraph earliest|shortest <filename> cs <br>
+./XuantemporalGraph earliest|shortest \<filename\> cs <br>
 
 To run with Test mode, for testign with just 1 source and comparing the outputs.
 Uncomment #define __TEST__ on the top of both Wu and XuanTemporalGrpahs.
