@@ -73,6 +73,29 @@ public:
        }
 };
 
+struct incrementalShortestJourney
+{
+    int indexPrevIncrement;
+    int prevNodeID;
+    int prevEdgeID;
+    int prevIntvlID;
+    int currentNodeID;
+    int prevDepartureTime;
+    int currentArrivalTime;
+    int journeyLength;
+public:
+    incrementalShortestJourney(int cArrT, int jnLength)
+    {
+        currentArrivalTime = cArrT; journeyLength = jnLength;
+    }
+    incrementalShortestJourney() {}
+    void assign(int cArrT, int jnLength)
+       {
+           currentArrivalTime = cArrT; journeyLength = jnLength;
+       }
+};
+
+
 struct Node
 {
     int nodeId;
@@ -172,6 +195,7 @@ public:
     void printMWFWalksPrioritized(int source);
     
     virtual void run_mhf() {}
+    virtual void run_hbh_shortest() {}
 
 
 public:

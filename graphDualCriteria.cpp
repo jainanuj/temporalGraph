@@ -178,6 +178,15 @@ void GraphDualCriteria::initial_ds_eha()
 
 }
 
+void GraphDualCriteria::initial_ds_hbhshrtst()
+{
+    incrementalShortestJourney shrtstJrny(infinity,infinity);     //shortest at source (arrTime, length).
+    shrtstPathAllVertices.clear();
+    shrtstPathAllVertices.resize(V);   //vector of incoming journeys at each vertex.
+    shrtstPathAllVertices.assign(V, shrtstJrny);
+}
+
+
 void GraphDualCriteria::initial_ds_ewa()
 {
     for (int i=0; i< V; i++)
@@ -218,6 +227,24 @@ void GraphDualCriteria::run_mhf()
     print_avg_time();
     cout << "max Runtime: " << max_runTime << "Max Src: " << max_Src << endl;
 }
+
+void GraphDualCriteria::run_hbh_shortest()
+{
+    time_sum=0;
+    max_runTime = 0;
+    max_Src = -1;
+    
+    for(int i = 0 ;i < sources.size();i ++)
+    {
+        initial_ds_hbhshrtst();
+        //earliest_arrival_minHop_pair(sources[i]);
+        shortestHopByHop(sources[i]);
+    }
+    
+    print_avg_time();
+    cout << "max Runtime: " << max_runTime << "Max Src: " << max_Src << endl;
+}
+
 
 void GraphDualCriteria::run_mwf()
 {
@@ -353,6 +380,8 @@ void GraphDualCriteria::mhfHopByHop(int source)
 }
 
 
+
+
 void GraphDualCriteria::build_mhf_Journeys(int source, vector<std::tuple<int, int, int>>& mhfJourneyPointer, vector<vector<incrementalJourney>>& allHopJourneys)
 {
     shortestJourneys.resize(V);                     //Shortest Journeys for all nodes needs to be found.
@@ -411,6 +440,219 @@ void GraphDualCriteria::printmhfResultsTest2(int source, vector<std::tuple<int, 
     cout << "Max Hops = " << maxHopCount << "\n";
     cout << "Avg # hops = " << avgHops << "\n";
 }
+
+
+void GraphDualCriteria::shortestHopByHop(int source)
+{
+    Timer t;
+
+    vector<list<incrementalShortestJourney>> aggShrtstListAtAllVerts;
+    vector<tuple<int, list<incrementalShortestJourney>>> *k_1arrAtAllVertices =
+                                                        new vector<tuple<int, list<incrementalShortestJourney>>>;  //list of vectors of new paths seen at k-1
+    vector<tuple<int, list<incrementalShortestJourney>>> *k_arrAtAllVertices =
+                                                        new vector<tuple<int, list<incrementalShortestJourney>>>;//List of vectors of new paths seen at k.
+    vector<tuple<int, list<incrementalShortestJourney>>> *temp_arrAtAllVertices = NULL;
+    vector<tuple<int, int>> lastk_ShortestHop;  //for each vertex, (last hopcount vert seen, index of this vertex in k_arrAllVertices for that hopcount)
+
+    lastk_ShortestHop.resize(V);
+    lastk_ShortestHop.assign(V, make_tuple(-1,-1)); //last hop in which vert seen, index in k_arrAtAllVerts for that hop.
+    aggShrtstListAtAllVerts.resize(V);
+    incrementalShortestJourney shrtstJrny(infinity,infinity);     //shortest at source (arrTime, length).
+    
+    shrtstJrny.assign(0, 0);
+    shrtstPathAllVertices[source] = shrtstJrny;
+    list<incrementalShortestJourney> tempListK; //list used for building shrtst journeys from a prev journey.
+    tempListK.emplace_front(shrtstJrny);
+    (*k_1arrAtAllVertices).push_back(make_tuple(source, tempListK));
+    int hopCount = 0;
+
+    t.start();
+    int numNewNodesInCurrentHop = 1;     //number of new nodes discovered.
+    while ( (hopCount < V-1) && (numNewNodesInCurrentHop > 0))// && (numNodesSeen < V))
+    {
+        hopCount++;
+        numNewNodesInCurrentHop = 0;
+        int intvlID = -1, nextNodeId;
+        Nbrs nextNbr;
+        for (int i = 0; i < (*k_1arrAtAllVertices).size(); i++)        //extend all journeys from prev hop
+        {
+            int node = get<0>((*k_1arrAtAllVertices)[i]);
+            list<incrementalShortestJourney> *listIncToExtend = &get<1>((*k_1arrAtAllVertices)[i]);
+            if (listIncToExtend->size() == 0)   //This can happen if all paths in this hop were dominated by paths in prev hops.
+                continue;
+            for (int j = 0; j < vertices[node].numNbrs; j++)    //look at all outgoing nbrs of node
+            {
+                nextNbr = vertices[node].neighbors[j];
+                nextNodeId = nextNbr.nbrId;
+                tempListK.clear();
+                int prevEarliestIntvlDepTime = infinity;
+                list<incrementalShortestJourney>::iterator extendListIt;
+                for ( extendListIt = (*listIncToExtend).end(); extendListIt != (*listIncToExtend).begin(); extendListIt--)//For each nbr proc. in paths at node in k-1 hop
+                {
+                    int arrTime = prev(extendListIt)->currentArrivalTime;
+                    int jrnyLngth = prev(extendListIt)->journeyLength;
+                    int earliestIntvldepartTime = earliestUseEdgeAfterT(node, nextNbr, arrTime, intvlID);
+                    if ( (earliestIntvldepartTime == -1) || (earliestIntvldepartTime >= infinity)
+                        || (intvlID == -1) || (earliestIntvldepartTime >= prevEarliestIntvlDepTime))
+                        continue;
+                    int trvlTime=nextNbr.edgeSchedules[intvlID].traveTime;
+                    int depTime = earliestIntvldepartTime;
+                    incrementalShortestJourney tempShortestJourney(depTime+trvlTime ,jrnyLngth+trvlTime);
+                    list<incrementalShortestJourney>::iterator posTempListK = tempListK.begin();
+                    if (checkShrtstDominanceAndPush(tempListK, tempShortestJourney, tempListK.begin()))
+                        posTempListK = next(tempListK.begin());
+                    for (int intvlIndex=intvlID+1; intvlIndex< nextNbr.numIntvls; intvlIndex++) //Coll. all ND paths in tempArr from node to next forAll edgeSchedules. This could be optimized using priority search tree instead of all intervals
+                    {
+                        trvlTime=nextNbr.edgeSchedules[intvlIndex].traveTime;
+                        depTime=nextNbr.edgeSchedules[intvlIndex].intvlStart;
+                        if (depTime >= prevEarliestIntvlDepTime)
+                            break;
+                        tempShortestJourney.assign(depTime+trvlTime, jrnyLngth+trvlTime);
+                        if (checkShrtstDominanceAndPush(tempListK, tempShortestJourney, posTempListK))
+                            posTempListK++;
+                    }
+                    prevEarliestIntvlDepTime = earliestIntvldepartTime;
+                } //All possible extensions of incoming journeys at this node to nextNode have been explored.
+                int idxK_arr;
+                if ( get<0>(lastk_ShortestHop[nextNodeId]) == hopCount) //check index for nextNodeId in k_ArrAtAllVerts if any.
+                {
+                    idxK_arr=get<1>(lastk_ShortestHop[nextNodeId]);
+                    mergeJourneys(get<1>((*k_arrAtAllVertices)[idxK_arr]), tempListK); //In place merge with jrnys at nextNode in k_ArrAtAllVerts
+                }
+                else if (tempListK.size() > 0) //If none, tempListK is pushed at end and lastk vector updated.
+                {
+                    (*k_arrAtAllVertices).push_back(make_tuple(nextNodeId, tempListK));
+                    get<0>(lastk_ShortestHop[nextNodeId]) = hopCount;
+                    get<1>(lastk_ShortestHop[nextNodeId]) = (int)(*k_arrAtAllVertices).size()-1;
+                    numNewNodesInCurrentHop++;
+                }
+            }  //All the nbrs of a node to extend in current hop count have been explored.
+        }  //All new journeys in k-1 hop to any new node have been extended to all their nbrs. //Time to mov to k hop.
+        for (int k_jrnysIndex = 0; k_jrnysIndex < (*k_arrAtAllVertices).size(); k_jrnysIndex++)  //upd shrtst jrny if nec at verts discvrd in k hop
+        {
+            int vertId = get<0>((*k_arrAtAllVertices)[k_jrnysIndex]);
+//            mergeJourneys(aggShrtstListAtAllVerts[vertId], get<1>((*k_arrAtAllVertices)[k_jrnysIndex])); //In place merge with jrnys at nextNode in k_ArrAtAllVerts
+            incrementalShortestJourney k_shrtstJrny = get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).back();
+            if (k_shrtstJrny.journeyLength < shrtstPathAllVertices[vertId].journeyLength)
+                shrtstPathAllVertices[vertId] = k_shrtstJrny;
+        }
+        k_1arrAtAllVertices->clear();         //Delete k-1 as they have been all explored.
+        temp_arrAtAllVertices = k_1arrAtAllVertices;
+        k_1arrAtAllVertices = k_arrAtAllVertices; //Make k-1 point to k.
+        k_arrAtAllVertices = temp_arrAtAllVertices;
+    }       //While loop to cover all hop counts.
+    t.stop();
+    time_sum += t.GetRuntime();
+    if (t.GetRuntime() > max_runTime)
+    {
+        max_runTime = t.GetRuntime();
+        max_Src = source;
+    }
+    //cout << "Num Nodes seen: " << numNodesSeen << endl;
+
+#ifdef __TEST__
+//    build_mhf_Journeys(source, earliestKnownTimeArrival, allHopJourneys);
+//    printmhfResultsTest2(source, earliestKnownTimeArrival);
+#endif
+
+    print_shortest_hbh_results(source);
+}
+
+void GraphDualCriteria::print_shortest_hbh_results(int source)
+{
+    cout << "Results as (t,l) at every vertex:" <<endl;
+    for (int i=0; i< shrtstPathAllVertices.size(); i++)
+        cout << i << ": " << shrtstPathAllVertices[i].currentArrivalTime << " " << shrtstPathAllVertices[i].journeyLength << endl;
+}
+
+
+bool GraphDualCriteria::mergeJourneys(list<incrementalShortestJourney>& toList, list<incrementalShortestJourney>& fromList)
+{
+    list<incrementalShortestJourney>::iterator fromIt = fromList.begin();
+    list<incrementalShortestJourney>::iterator toIt = toList.begin();
+    while ((fromIt != fromList.end()) && (toIt != toList.end()) ) {
+        if ((*toIt).currentArrivalTime < (*fromIt).currentArrivalTime) {
+            if ((*toIt).journeyLength <= (*fromIt).journeyLength) {
+                fromIt = fromList.erase(fromIt); //journey in fromIt is dominated, so remove it.
+            }
+            else
+                toIt++;
+        }
+        else if ((*fromIt).currentArrivalTime < (*toIt).currentArrivalTime) {
+            toIt = toList.insert(toIt, (*fromIt));
+            toIt++;
+            while (((*fromIt).journeyLength <= (*toIt).journeyLength)
+                   && (toIt != toList.end()))//eliminate dominated journeys.
+                toIt = toList.erase(toIt);
+            fromIt++;
+        }
+        else {      //arrival time is same for both from and to
+            if ((*toIt).journeyLength <= (*fromIt).journeyLength) //journey in fromIt is dominated
+                fromIt = fromList.erase(fromIt); //journey in fromIt is dominated, so remove it.
+            else
+            {
+                toIt = toList.insert(toIt, (*fromIt));
+                toIt++;
+                while (((*fromIt).journeyLength <= (*toIt).journeyLength)
+                       && (toIt != toList.end()))//eliminate dominated journeys.
+                    toIt = toList.erase(toIt);
+                fromIt++;
+            }
+        }
+    }
+    incrementalShortestJourney lastMergedJourney(infinity,infinity); // = *(prev(toIt));
+    if ((toList.size() > 0) && (toIt == toList.end()))
+        lastMergedJourney = *(prev(toIt));
+    if ( (toIt == toList.end()) && (fromIt != fromList.end()))
+    {
+        while ( (lastMergedJourney.journeyLength <= (*fromIt).journeyLength)
+               && (fromIt != fromList.end()) )
+            fromIt = fromList.erase(fromIt);       //skip these as they are dominated.
+        while (fromIt != fromList.end()) {
+            toIt = toList.insert(toIt, *fromIt);
+            toIt++; fromIt++;
+        }
+    }
+    if (toList.size() > 0)
+        return true;
+    else
+        return false;
+}
+
+bool GraphDualCriteria::checkShrtstDominanceAndPush(list<incrementalShortestJourney>& listShrtstJrnys, incrementalShortestJourney latestShrtstJrny,
+                                                    list<incrementalShortestJourney>::iterator posList)
+{
+    if (posList == listShrtstJrnys.begin())
+    {
+        posList= listShrtstJrnys.insert(posList, latestShrtstJrny);
+    }
+    else
+    {
+        incrementalShortestJourney prevListJrny = *(prev(posList));
+        if (latestShrtstJrny.journeyLength < prevListJrny.journeyLength) //length is less of new journey.
+        {
+            posList= listShrtstJrnys.insert(posList, latestShrtstJrny);     //replace last journey in array with this one.
+        }
+        else //if (latestShrtstJrny.journeyLength >= prevListJrny.journeyLength).
+            return false;   //lngth is same or bigger and arriv is bigger. So dominated, hence ignore.
+    }
+    
+    if (posList==listShrtstJrnys.end())
+        return false;
+    //If journey was inserted, clean up any subsequent dominated journeys.
+    bool cleaned = false;
+    list<incrementalShortestJourney>::iterator cleanIt = next(posList);
+    while((cleanIt != listShrtstJrnys.end()) && (cleaned==false))
+    {
+        if (posList->journeyLength <= cleanIt->journeyLength)
+            cleanIt = listShrtstJrnys.erase(cleanIt);
+        else
+            cleaned=true;
+    }
+    return true;
+}
+
+
 
 
 /*************************

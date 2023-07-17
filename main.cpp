@@ -4,7 +4,7 @@
 //
 //  Created by Anuj Jain on 11/20/20.
 //
-// ./XuantemporalGraph earliest|shortest|mwf <filePath>
+// ./XuantemporalGraph earliest|shortest|mwf|hbhshrtst <filePath>
 
 // ./XuantemporalGraph wu <fileName> <1/2>(drop num Lines to drop)  <0/1>(normalize or not) //
 
@@ -78,7 +78,7 @@ int main(int argc, const char * argv[]) {
     if (argc > 4)
         contactSeq = 1;
     Graph *g;
-    if(!strcmp(option,"mwf") || (!strcmp(option,"mhf")) )
+    if(!strcmp(option,"mwf") || (!strcmp(option,"mhf")) || (!strcmp(option,"hbhshrtst")) )
         g = new GraphDualCriteria(argv[2], contactSeq, option);
     else
         g = new Graph(argv[2], contactSeq, option);
@@ -106,6 +106,10 @@ int main(int argc, const char * argv[]) {
     else if(!strcmp(option,"mhf"))
     {
         g->run_mhf();
+    }
+    else if(!strcmp(option,"hbhshrtst"))
+    {
+        g->run_hbh_shortest();
     }
     std::cout << "Hello, World!\n";
     return 0;

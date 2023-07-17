@@ -61,11 +61,15 @@ public:
     void initial_ds_eha();
     void initial_ds_ewa();
     void initial_ds_ewa_classes();
+    void initial_ds_hbhshrtst();
+
     int earliest_arrival_minHop_pair(int source);
     void run_mhf();
     void run_mwf();
+    void run_hbh_shortest();
     void printmhfResultsTest(int source);
     void mhfHopByHop(int source);
+    void shortestHopByHop(int source);
     void mwfStreamingIntvls(int source);
     void mwfStreamingIntvlsWJourneyClasses(int source);
     void mwfStreamingIntvlsV2(int source);
@@ -91,6 +95,12 @@ public:
     int createNewJourneyClass(mwfJourneyClass& prevJourneyClass, intervalInfo& intervalToExpand, mwfJourneyClass& newJourenyClass, int prevJourenyClassIndex);
     void recordFinalJourney(int v, mwfJourneyClass& newJourneyClass);
     
+    bool checkShrtstDominanceAndPush(list<incrementalShortestJourney>& listShrtstJrnys, incrementalShortestJourney latestShrtstJrny,
+                                     list<incrementalShortestJourney>::iterator posList);
+    bool mergeJourneys(list<incrementalShortestJourney>& toList, list<incrementalShortestJourney>& fromList);
+    void print_shortest_hbh_results(int source);
+
+    
 public:
     vector <pair<int,int>> arr_hop_time, f_time;
 
@@ -102,6 +112,8 @@ public:
 
     vector<vector<mwfJourneyClass>> listJourneyClasses;    //List of journeys at each node.
     int max_runTime, max_Src;
+    
+    vector<incrementalShortestJourney> shrtstPathAllVertices; //At each vertex there is a vector of shortest journeys discovered by the last hop.
 };
 
 class nodeComparisonArrHops {
