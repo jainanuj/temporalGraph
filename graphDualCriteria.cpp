@@ -501,9 +501,13 @@ void GraphDualCriteria::shortestHopByHop(int source)
                     list<incrementalShortestJourney>::iterator posTempListK = tempListK.begin();
                     if (checkShrtstDominanceAndPush(tempListK, tempShortestJourney, tempListK.begin()))
                         posTempListK = next(tempListK.begin());
+                    int prevTrvlTime = trvlTime;
                     for (int intvlIndex=intvlID+1; intvlIndex< nextNbr.numIntvls; intvlIndex++) //Coll. all ND paths in tempArr from node to next forAll edgeSchedules. This could be optimized using priority search tree instead of all intervals
                     {
                         trvlTime=nextNbr.edgeSchedules[intvlIndex].traveTime;
+                        if (trvlTime >= prevTrvlTime)
+                            continue;
+                        prevTrvlTime=trvlTime;
                         depTime=nextNbr.edgeSchedules[intvlIndex].intvlStart;
                         if (depTime >= prevEarliestIntvlDepTime)
                             break;
