@@ -376,7 +376,7 @@ void GraphDualCriteria::mhfHopByHop(int source)
 //    printmhfResultsTest2(source, earliestKnownTimeArrival);
 #endif
 
-//    print_shortest_paths(source);
+    print_shortest_paths(source);
 }
 
 
@@ -478,7 +478,7 @@ void GraphDualCriteria::shortestHopByHop(int source)
         {
             int node = get<0>((*k_1arrAtAllVertices)[i]);
             list<incrementalShortestJourney> *listIncToExtend = &get<1>((*k_1arrAtAllVertices)[i]);
-            if (listIncToExtend->size() == 0)   //This can happen if all paths in this hop were dominated by paths in prev hops.
+            if (listIncToExtend->size() == 0)   //If paths in k hop were dominated by paths in k-1 hops.
                 continue;
             for (int j = 0; j < vertices[node].numNbrs; j++)    //look at all outgoing nbrs of node
             {
@@ -518,27 +518,31 @@ void GraphDualCriteria::shortestHopByHop(int source)
                     prevEarliestIntvlDepTime = earliestIntvldepartTime;
                 } //All possible extensions of incoming journeys at this node to nextNode have been explored.
                 int idxK_arr;
-                if ( get<0>(lastk_ShortestHop[nextNodeId]) == hopCount) //check index for nextNodeId in k_ArrAtAllVerts if any.
+                if ( get<0>(lastk_ShortestHop[nextNodeId]) == hopCount) //check nextNodeId in k_ArrAtAllVerts if any.
                 {
                     idxK_arr=get<1>(lastk_ShortestHop[nextNodeId]);
-                    mergeJourneys(get<1>((*k_arrAtAllVertices)[idxK_arr]), tempListK); //In place merge with jrnys at nextNode in k_ArrAtAllVerts
+                    mergeJourneys(get<1>((*k_arrAtAllVertices)[idxK_arr]), tempListK); //merge with jrnys at nextNode in k_ArrAtAllVerts
                 }
                 else if (tempListK.size() > 0) //If none, tempListK is pushed at end and lastk vector updated.
                 {
                     (*k_arrAtAllVertices).push_back(make_tuple(nextNodeId, tempListK));
                     get<0>(lastk_ShortestHop[nextNodeId]) = hopCount;
                     get<1>(lastk_ShortestHop[nextNodeId]) = (int)(*k_arrAtAllVertices).size()-1;
-                    numNewNodesInCurrentHop++;
+                    //numNewNodesInCurrentHop++;
                 }
             }  //All the nbrs of a node to extend in current hop count have been explored.
-        }  //All new journeys in k-1 hop to any new node have been extended to all their nbrs. //Time to mov to k hop.
-        for (int k_jrnysIndex = 0; k_jrnysIndex < (*k_arrAtAllVertices).size(); k_jrnysIndex++)  //upd shrtst jrny if nec at verts discvrd in k hop
+        }  //All new journeys in k-1 hop to any new node have been extended to all their nbrs.
+        for (int k_jrnysIndex = 0; k_jrnysIndex < (*k_arrAtAllVertices).size(); k_jrnysIndex++) //upd shrtst jrny
         {
             int vertId = get<0>((*k_arrAtAllVertices)[k_jrnysIndex]);
-//            mergeJourneys(aggShrtstListAtAllVerts[vertId], get<1>((*k_arrAtAllVertices)[k_jrnysIndex])); //In place merge with jrnys at nextNode in k_ArrAtAllVerts
-            incrementalShortestJourney k_shrtstJrny = get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).back();
-            if (k_shrtstJrny.journeyLength < shrtstPathAllVertices[vertId].journeyLength)
-                shrtstPathAllVertices[vertId] = k_shrtstJrny;
+            mergeJourneys(aggShrtstListAtAllVerts[vertId], get<1>((*k_arrAtAllVertices)[k_jrnysIndex]));
+            if (get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).size() > 0)
+            {
+                numNewNodesInCurrentHop++;
+                incrementalShortestJourney k_shrtstJrny = get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).back();
+                if (k_shrtstJrny.journeyLength < shrtstPathAllVertices[vertId].journeyLength)
+                    shrtstPathAllVertices[vertId] = k_shrtstJrny;
+            }
         }
         k_1arrAtAllVertices->clear();         //Delete k-1 as they have been all explored.
         temp_arrAtAllVertices = k_1arrAtAllVertices;
@@ -564,9 +568,16 @@ void GraphDualCriteria::shortestHopByHop(int source)
 
 void GraphDualCriteria::print_shortest_hbh_results(int source)
 {
+    ofstream hbh_out(hbhShrtstResults);
+
     cout << "Results as (t,l) at every vertex:" <<endl;
+    hbh_out << V << endl;
     for (int i=0; i< shrtstPathAllVertices.size(); i++)
-        cout << i << ": " << shrtstPathAllVertices[i].currentArrivalTime << " " << shrtstPathAllVertices[i].journeyLength << endl;
+    {
+        if (shrtstPathAllVertices[i].currentArrivalTime >= infinity)
+            continue;
+        hbh_out << i << " " << shrtstPathAllVertices[i].currentArrivalTime << " " << shrtstPathAllVertices[i].journeyLength << endl;
+    }
 }
 
 
