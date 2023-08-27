@@ -133,6 +133,7 @@ public:
 class Graph
 {
 public:
+    string getOuptuFile(string inFile,string appendRes);
     Graph() {}
     Graph(const char* filePath, int contactSeq, const char * option); // input file
     void initial_query(const char* filePath); // query file
@@ -203,6 +204,7 @@ public:
     string shortestResults;
     string minHeapMonitor;
     string mhfResults;
+    string hbhShrtstResults;
     int mNumJourExtInst;
     vector<Node> vertices;
     

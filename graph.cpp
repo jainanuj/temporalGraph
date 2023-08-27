@@ -13,6 +13,7 @@
 #include <fstream>
 #include "fibheap.h"
 #include "regHeap.hpp"
+#include <string>
 
 //#define MEASUREHEAP_DET 1
 #define __TEST__
@@ -23,6 +24,14 @@
 
 #define sourceId 0
 
+string Graph::getOuptuFile(string inFile,string appendRes)
+{
+    string outFile = inFile;
+    unsigned int len = (int)appendRes.length();
+    outFile.replace(outFile.length()-4, len, appendRes);
+    return outFile;
+}
+
 Graph::Graph(const char* filePath, int contactSeq = 0, const char * option="any")      //Reads the edges of the graph in interval format. Edges will be specified as u, v, intvlCount, [intvls]. Each intvl is specified as (start, end, travelTime). End is last time instant at which edge can be used.
 {
     FILE* file;
@@ -31,32 +40,18 @@ Graph::Graph(const char* filePath, int contactSeq = 0, const char * option="any"
     Nbrs nbr;
     Node node;
     
-    string earliestOutputEnd = "_earliestResults.txt";
-    string shortestOutputEnd = "_shortestResults.txt";
-    string minHeapMonitorEnd = "_minHeapMon.txt";
-    string earliestMWFOutputEnd = "_mhfResults.txt";
-
-    std::string opFile(filePath);
-    unsigned long len = earliestOutputEnd.length();
-    opFile.replace(opFile.length()-4, len, earliestOutputEnd);
-    earliestResults = opFile;
-
-    std::string opFile1(filePath);
-    len = earliestMWFOutputEnd.length();
-    opFile1.replace(opFile1.length()-4, len, earliestMWFOutputEnd);
-    mhfResults = opFile1;
-
-    string opFile2(filePath);
-    len = shortestOutputEnd.length();
-    opFile2.replace(opFile2.length()-4, len, shortestOutputEnd);
-    shortestResults = opFile2;
+    string inFile(filePath);
+    string opFile("./");
     
-    string minHeapMon(filePath);
-    len = minHeapMonitorEnd.length();
-    minHeapMon.replace(minHeapMon.length()-4, len, minHeapMonitorEnd);
-    minHeapMonitor = minHeapMon;
-
-
+    std::size_t lastSlash = inFile.find_last_of('/');
+    
+    opFile = opFile+inFile.substr(lastSlash+1);
+    
+    earliestResults= getOuptuFile(opFile, "_earliestResults.txt");
+    mhfResults= getOuptuFile(opFile, "_mhfResults.txt");
+    shortestResults= getOuptuFile(opFile, "_shortestResults.txt");
+    hbhShrtstResults= getOuptuFile(opFile, "_hbhshrtstResuts.txt");
+    minHeapMonitor= getOuptuFile(opFile, "_minHeapMon.txt");
     
     file = fopen(filePath,"r");
     
