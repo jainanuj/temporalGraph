@@ -24,11 +24,14 @@
 
 #define sourceId 0
 
-string Graph::getOuptuFile(string inFile,string appendRes)
+string Graph::getOuptuFile(string inFile,string action)
 {
-    string outFile = inFile;
-    unsigned int len = (int)appendRes.length();
-    outFile.replace(outFile.length()-4, len, appendRes);
+    string resSuffix="_"+action+"Results.txt";
+    string outFile("./");
+    std::size_t lastSlash = inFile.find_last_of('/');
+    outFile = outFile+inFile.substr(lastSlash+1);
+    unsigned int len = (int)resSuffix.length();
+    outFile.replace(outFile.length()-4, len, resSuffix);
     return outFile;
 }
 
@@ -39,19 +42,10 @@ Graph::Graph(const char* filePath, int contactSeq = 0, const char * option="any"
     int u, lambda, intvlStart, intvlEnd, adjustedEnd;
     Nbrs nbr;
     Node node;
-    
-    string inFile(filePath);
-    string opFile("./");
-    
-    std::size_t lastSlash = inFile.find_last_of('/');
-    
-    opFile = opFile+inFile.substr(lastSlash+1);
-    
-    earliestResults= getOuptuFile(opFile, "_earliestResults.txt");
-    mhfResults= getOuptuFile(opFile, "_mhfResults.txt");
-    shortestResults= getOuptuFile(opFile, "_shortestResults.txt");
-    hbhShrtstResults= getOuptuFile(opFile, "_hbhshrtstResuts.txt");
-    minHeapMonitor= getOuptuFile(opFile, "_minHeapMon.txt");
+        
+    resultsFile=getOuptuFile(filePath, option);
+    minHeapMonitor=getOuptuFile(filePath, "minHeap");
+
     
     file = fopen(filePath,"r");
     
@@ -906,7 +900,7 @@ void Graph::printResults(int source)
 void Graph::printEarliestResultsTest(int source)
 {
     int rv = 0;
-    ofstream earliestOut(earliestResults);
+    ofstream earliestOut(resultsFile);
     earliestOut << V << "\n";
     for (int i = 0; i < arr_time.size(); i++)
     {
@@ -1981,7 +1975,7 @@ void Graph::print_shortest_paths(int source)
 
 void Graph::print_shortest_results_test(int source)
 {
-    ofstream shortestOut(shortestResults);
+    ofstream shortestOut(resultsFile);
     int maxHopCount = 0; int vertWHops = 1; int sumHops = 0; int avgHops; int arrivalTime; int numHops;
     shortestOut << V << "\n";
     for (int i = 0; i < V; i++)

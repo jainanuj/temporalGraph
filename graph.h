@@ -200,11 +200,8 @@ public:
 
 
 public:
-    string earliestResults;
-    string shortestResults;
+    string resultsFile;
     string minHeapMonitor;
-    string mhfResults;
-    string hbhShrtstResults;
     int mNumJourExtInst;
     vector<Node> vertices;
     

@@ -279,7 +279,7 @@ void GraphDualCriteria::run_mwf()
 void GraphDualCriteria::printmhfResultsTest(int source)
 {
     int rv = 0;
-    ofstream earliestMHOut(mhfResults);
+    ofstream earliestMHOut(resultsFile);
     earliestMHOut << V << "\n";
     for (int i = 0; i < arr_hop_time.size(); i++)
     {
@@ -408,7 +408,7 @@ void GraphDualCriteria::build_mhf_Journeys(int source, vector<std::tuple<int, in
 void GraphDualCriteria::printmhfResultsTest2(int source, vector<std::tuple<int, int, int>>& mhfJourney)
 {
     int rv = 0; int sumHops = 0, maxHopCount=0; int avgHops;
-    ofstream earliestMHFOut(mhfResults);
+    ofstream earliestMHFOut(resultsFile);
     earliestMHFOut << V << "\n";
     for (int i = 0; i < mhfJourney.size(); i++)
     {
@@ -568,7 +568,7 @@ void GraphDualCriteria::shortestHopByHop(int source)
 
 void GraphDualCriteria::print_shortest_hbh_results(int source)
 {
-    ofstream hbh_out(hbhShrtstResults);
+    ofstream hbh_out(resultsFile);
 
     cout << "Results as (t,l) at every vertex:" <<endl;
     hbh_out << V << endl;
