@@ -461,6 +461,7 @@ void GraphDualCriteria::shortestHopByHop(int source)
     
     shrtstJrny.assign(0, 0);
     shrtstPathAllVertices[source] = shrtstJrny;
+    aggShrtstListAtAllVerts[source].emplace_front(shrtstJrny);
     list<incrementalShortestJourney> tempListK; //list used for building shrtst journeys from a prev journey.
     tempListK.emplace_front(shrtstJrny);
     (*k_1arrAtAllVertices).push_back(make_tuple(source, tempListK));
@@ -484,6 +485,8 @@ void GraphDualCriteria::shortestHopByHop(int source)
             {
                 nextNbr = vertices[node].neighbors[j];
                 nextNodeId = nextNbr.nbrId;
+                if (nextNodeId == source)
+                    continue;                   //no point going back to source.
                 tempListK.clear();
                 int prevEarliestIntvlDepTime = infinity;
                 list<incrementalShortestJourney>::iterator extendListIt;
