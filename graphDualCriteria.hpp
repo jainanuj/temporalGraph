@@ -96,7 +96,7 @@ public:
     void recordFinalJourney(int v, mwfJourneyClass& newJourneyClass);
     
     bool checkShrtstDominanceAndPush(list<incrementalShortestJourney>& listShrtstJrnys, incrementalShortestJourney latestShrtstJrny,
-                                     list<incrementalShortestJourney>::iterator posList);
+                                     list<incrementalShortestJourney>::iterator& posList);
     bool mergeJourneys(list<incrementalShortestJourney>& toList, list<incrementalShortestJourney>& fromList);
     void print_shortest_hbh_results(int source);
 

@@ -502,8 +502,7 @@ void GraphDualCriteria::shortestHopByHop(int source)
                     int depTime = earliestIntvldepartTime;
                     incrementalShortestJourney tempShortestJourney(depTime+trvlTime ,jrnyLngth+trvlTime);
                     list<incrementalShortestJourney>::iterator posTempListK = tempListK.begin();
-                    if (checkShrtstDominanceAndPush(tempListK, tempShortestJourney, tempListK.begin()))
-                        posTempListK = next(tempListK.begin());
+                    checkShrtstDominanceAndPush(tempListK, tempShortestJourney, posTempListK);
                     int prevTrvlTime = trvlTime;
                     for (int intvlIndex=intvlID+1; intvlIndex< nextNbr.numIntvls; intvlIndex++) //Coll. all ND paths in tempArr from node to next forAll edgeSchedules. This could be optimized using priority search tree instead of all intervals
                     {
@@ -515,8 +514,7 @@ void GraphDualCriteria::shortestHopByHop(int source)
                         if (depTime >= prevEarliestIntvlDepTime)
                             break;
                         tempShortestJourney.assign(depTime+trvlTime, jrnyLngth+trvlTime);
-                        if (checkShrtstDominanceAndPush(tempListK, tempShortestJourney, posTempListK))
-                            posTempListK++;
+                        checkShrtstDominanceAndPush(tempListK, tempShortestJourney, posTempListK);
                     }
                     prevEarliestIntvlDepTime = earliestIntvldepartTime;
                 } //All possible extensions of incoming journeys at this node to nextNode have been explored.
@@ -638,7 +636,7 @@ bool GraphDualCriteria::mergeJourneys(list<incrementalShortestJourney>& toList, 
 }
 
 bool GraphDualCriteria::checkShrtstDominanceAndPush(list<incrementalShortestJourney>& listShrtstJrnys, incrementalShortestJourney latestShrtstJrny,
-                                                    list<incrementalShortestJourney>::iterator posList)
+                                                    list<incrementalShortestJourney>::iterator& posList)
 {
     if (posList == listShrtstJrnys.begin())
     {
@@ -667,6 +665,7 @@ bool GraphDualCriteria::checkShrtstDominanceAndPush(list<incrementalShortestJour
         else
             cleaned=true;
     }
+    posList++;
     return true;
 }
 
