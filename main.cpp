@@ -82,12 +82,12 @@ int main(int argc, const char * argv[]) {
         g = new GraphDualCriteria(argv[2], contactSeq, option);
     else
         g = new Graph(argv[2], contactSeq, option);
+    t.stop();
     if (argc == 4)
         g->initial_query(argv[3]);
     else
         g->initial_query();
 
-    t.stop();
     cout << "Reading time: " << t.GetRuntime() << "\n";
 
 

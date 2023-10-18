@@ -111,7 +111,8 @@ public:
     vector<mwfJourneyClass> finalMWFJourneyClass;
 
     vector<vector<mwfJourneyClass>> listJourneyClasses;    //List of journeys at each node.
-    int max_runTime, max_Src;
+    double max_runTime;
+    int max_Src;
     
     vector<incrementalShortestJourney> shrtstPathAllVertices; //At each vertex there is a vector of shortest journeys discovered by the last hop.
 };

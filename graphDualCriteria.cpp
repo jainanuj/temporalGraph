@@ -569,9 +569,10 @@ void GraphDualCriteria::shortestHopByHop(int source)
 
 void GraphDualCriteria::print_shortest_hbh_results(int source)
 {
-    ofstream hbh_out(resultsFile);
+    string resultSource = resultsFile + "_" + to_string(source);
+    ofstream hbh_out(resultSource);
 
-    cout << "Results as (t,l) at every vertex:" <<endl;
+    //cout << "Results as (t,l) at every vertex:" <<endl;
     hbh_out << V << endl;
     for (int i=0; i< shrtstPathAllVertices.size(); i++)
     {
