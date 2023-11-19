@@ -22,7 +22,7 @@
 #define JOURCHECK 1000000
 
 
-#define sourceId 0
+#define sourceId 1
 
 string Graph::getOuptuFile(string inFile,string action)
 {
@@ -101,7 +101,7 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop, int normalizeWri
     
     ifstream inputFile(filePath);
     string inputLine;
-    int drop = 0;
+    double drop = 0;
     int minNodeId = infinity;
     int vertexIdAdj = 0;
     
@@ -122,7 +122,7 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop, int normalizeWri
     for (int dx=0; dx<numDrop; dx++)    //Drop the first numDrop lines as they are comments.
         getline(inputFile, inputLine);
     while (getline(inputFile, inputLine))
-//    for(int i = 0; i < wuEdges; i ++)
+//    for(int i = 0; i < wuEdges; i ++)  
     {
         if (noL == 1)
         {
@@ -131,7 +131,7 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop, int normalizeWri
         }
         else if (noL == 2)      //drop the element after u, v. Input is: u, v, {some wt.}, t.
         {
-            x = sscanf(inputLine.c_str(), "%d %d %d %d", &u, &v, &drop, &t);
+            x = sscanf(inputLine.c_str(), "%d %d %lf %d", &u, &v, &drop, &t);
         }
         else
         {
