@@ -7,6 +7,7 @@
 // ./XuantemporalGraph earliest|shortest|mwf|hbhshrtst <filePath>
 
 // ./XuantemporalGraph wu <fileName> <1/2>(drop num Lines to drop)  <0/1>(normalize or not) //
+// ./XuantemporalGraph static <fileName_xuanOp.txt> // Creates a file with underlying static graph for this intvl graph.
 
 #include <iostream>
 #include <string>
@@ -111,6 +112,11 @@ int main(int argc, const char * argv[]) {
     {
         g->run_hbh_shortest();
     }
+    else if(!strcmp(option,"static"))
+    {
+        g->createStaticGraph(argv[2]);
+    }
+
     std::cout << "Hello, World!\n";
     return 0;
 }

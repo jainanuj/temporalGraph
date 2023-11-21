@@ -195,6 +195,9 @@ public:
     void printMWFWalks(int source);
     void printMWFWalksPrioritized(int source);
     
+    void createStaticGraph(string inputFileName);
+    void staticGraph(string filePath);
+
     virtual void run_mhf() {}
     virtual void run_hbh_shortest() {}
 

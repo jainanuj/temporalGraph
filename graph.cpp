@@ -122,7 +122,7 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop, int normalizeWri
     for (int dx=0; dx<numDrop; dx++)    //Drop the first numDrop lines as they are comments.
         getline(inputFile, inputLine);
     while (getline(inputFile, inputLine))
-//    for(int i = 0; i < wuEdges; i ++)  
+//  for(int i = 0; i < wuEdges; i ++)
     {
         if (noL == 1)
         {
@@ -171,6 +171,7 @@ void Graph::wuGraph(const char* filePath, int noL, int numDrop, int normalizeWri
         get<2>(inputRows[i]) = get<2>(inputRows[i]) - normalizeSub;
         fprintf(wuOutput, "%d %d %d %d\n", get<0>(inputRows[i]), get<1>(inputRows[i]), get<2>(inputRows[i]), get<3>(inputRows[i]) );
     }
+    fflush(wuOutput);
     fclose(wuOutput);
     
     buildXuanGraph(filePath, inputRows, vertices, wuEdges);
@@ -513,6 +514,32 @@ void Graph::run_earliest_arrival()
     }
     
     print_avg_time();
+}
+
+void Graph::createStaticGraph(string inputFileName)
+{
+    string outputFileName = inputFileName;
+    string xuanOpEnd = "_xuanOp.txt";
+    string staticGraphOpEnd = "_static.txt";
+    unsigned long len = xuanOpEnd.length();
+    unsigned long staticLen = staticGraphOpEnd.length();
+    outputFileName.replace(inputFileName.length()-len, staticLen, staticGraphOpEnd);
+    staticGraph(outputFileName);
+}
+
+void Graph::staticGraph(string filePath)
+{
+    ofstream statGraphFile(filePath);
+    statGraphFile << V << " " << dynamic_E << endl;
+    for (int i=0; i < V; i++)
+    {
+        int u = vertices[i].nodeId;
+        for (int j = 0; j < vertices[u].numNbrs;j++)
+        {
+            int v = vertices[u].neighbors[j].nbrId;
+            statGraphFile << u << " " << v << endl;
+        }
+    }
 }
 
 void Graph::earliest_arrival(int source)

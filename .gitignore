@@ -1,0 +1,28 @@
+# Dataset files#
+######################
+*.log
+*.sql
+*.sqlite
+*.txt
+datasets/*
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.xcodeproj*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
