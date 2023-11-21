@@ -1,8 +1,6 @@
-For generating graphs with wu model and Xuan model from Koblenz networks. First line will b dropped as comment: <br>
-./XuantemporalGraph wu \<filename\> <br>
+./XuantemporalGraph wu \<filename\> //generate graphs with wu model and Xuan model from Koblenz n/ws. First line will b dropped as comment:  <br> 
 
-For the koblenz networks where first 2 lines have to be dropped. <br>
-./XuantemporalGraph wu \<filename\> \<1/2\>(drop num Lines to drop) \<0/1\>(normalize or not) <br>
+./XuantemporalGraph wu \<filename\> \<1/2\>(drop num Lines to drop) \<0/1\>(normalize or not) //same as above with num lines dropped and possible ts normalized output <br>
 
 If only first line has to be dropped than the first command is good enough. <br>
 Normalize option means that the min timestamp starts at 0. So the min timestamp is subratcted from all timestamps. <br>
@@ -29,17 +27,11 @@ example, intvl format:
 cs format:
 1 2 3 1 1 5 1 10 2
 
-command to generate CSG format and Intvl format from downloaded koblenz datasets <br>
-./XuantemporalGraph wu \<fileName\> \<1/2\>(drop num Lines to drop from top)  \<0/1\>(normalize or not) <br>
+./XuantemporalGraph static \<fileName_xuanOp.txt\>  //generate underlying static graph given an intvl temporal graph<br>
 
-command to generat underlying static graph given an intvl temporal graph <br>
-./XuantemporalGraph static \<fileName_xuanOp.txt\> <br>
+./XuantemporalGraph earliest|shortest|mhf|mwf|hbhshrtst \<filename\> //run algos with intvl format <br>
 
-command to run with intvl format: <br>
-./XuantemporalGraph earliest|shortest|mhf|mwf|hbhshrtst \<filename\> <br>
-
-command to run with cs format: <br>
-./XuantemporalGraph earliest|shortest \<filename\> cs <br>
+./XuantemporalGraph earliest|shortest \<filename\> cs //run algos with cs intvl format <br>
 
 To run with Test mode, for testign with just 1 source and comparing the outputs.
 Uncomment #define __TEST__ on the top of both Wu and XuanTemporalGrpahs.
