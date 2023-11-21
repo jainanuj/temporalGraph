@@ -29,10 +29,10 @@ example, intvl format:
 cs format:
 1 2 3 1 1 5 1 10 2
 
-command to generate CSG format and Intvl format from downloaded koblenz datasets
+command to generate CSG format and Intvl format from downloaded koblenz datasets <br>
 ./XuantemporalGraph wu \<fileName\> \<1/2\>(drop num Lines to drop from top)  \<0/1\>(normalize or not) <br>
 
-command to generat underlying static graph given an intvl temporal graph
+command to generat underlying static graph given an intvl temporal graph <br>
 ./XuantemporalGraph static \<fileName_xuanOp.txt\> <br>
 
 command to run with intvl format: <br>
