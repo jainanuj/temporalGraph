@@ -537,7 +537,7 @@ void GraphDualCriteria::shortestHopByHop(int source)
         {
             int vertId = get<0>((*k_arrAtAllVertices)[k_jrnysIndex]);
             mergeJourneys(aggShrtstListAtAllVerts[vertId], get<1>((*k_arrAtAllVertices)[k_jrnysIndex]));
-            if (get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).size() > 0)
+            if (get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).size() > 0) //check surviving k-hop jrnys to vertId after pruning ones dominated by prev jrnys.
             {
                 numNewNodesInCurrentHop++;
                 incrementalShortestJourney k_shrtstJrny = get<1>((*k_arrAtAllVertices)[k_jrnysIndex]).back();
@@ -582,7 +582,9 @@ void GraphDualCriteria::print_shortest_hbh_results(int source)
     }
 }
 
-
+//fromList is the new list of journeys in kth hop. ToList is all journeys collected so far in 0-(k-1) hops.
+//Prune fromList by removing suboptimal journeys when compared with journeys in toList.
+//Add new optimal journeys from fromList to the toList and delete any suboptimal journeys collected in toList.
 bool GraphDualCriteria::mergeJourneys(list<incrementalShortestJourney>& toList, list<incrementalShortestJourney>& fromList)
 {
     list<incrementalShortestJourney>::iterator fromIt = fromList.begin();
@@ -605,7 +607,7 @@ bool GraphDualCriteria::mergeJourneys(list<incrementalShortestJourney>& toList, 
         }
         else {      //arrival time is same for both from and to
             if ((*toIt).journeyLength <= (*fromIt).journeyLength) //journey in fromIt is dominated
-                fromIt = fromList.erase(fromIt); //journey in fromIt is dominated, so remove it.
+                fromIt = fromList.erase(fromIt); //journey in fromIt is dominated, so remove it. We prefer journey already in toList as it has < k hops.
             else
             {
                 toIt = toList.insert(toIt, (*fromIt));
