@@ -1,3 +1,4 @@
+check push <br>
 ./XuantemporalGraph wu \<filename\> //generate graphs with wu model and Xuan model from Koblenz n/ws. First line will b dropped as comment:  <br> 
 
 ./XuantemporalGraph wu \<filename\> \<1/2\>(drop num Lines to drop) \<0/1\>(normalize or not) //same as above with num lines dropped and possible ts normalized output <br>
